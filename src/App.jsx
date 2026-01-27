@@ -136,11 +136,35 @@ export default function PrayerTVBeautiful() {
   }, [config.tz]);
 
   const upcoming = useMemo(() => {
-    const arr = PRAYER_ORDER.map(k => ({ key: k, t: dayjs(times[k]) }));
-    const found = arr.find(e => e.t.isAfter(now)) || { key: null, t: null };
-    if (found.key && config.iqama[found.key] === 0) fetchRandomAyah();
-    return found;
-  }, [times, now, config.iqama]);
+    // 1. Versuche die Gebete für HEUTE zu finden
+    const arrToday = PRAYER_ORDER.map(k => ({ key: k, t: dayjs(times[k]) }));
+    let found = arrToday.find(e => e.t.isAfter(now));
+
+    // 2. Wenn heute nichts mehr kommt (nach Isha), nimm das erste Gebet von MORGEN
+    if (!found) {
+      const tomorrow = today.add(1, "day");
+      const key = tomorrow.format("YYYY-MM-DD");
+      const calRow = calendar?.[key];
+      
+      let nextFajr;
+      if (calRow) {
+        // Zeit aus dem DITIB Kalender für morgen
+        nextFajr = toDateWithTime(tomorrow, calRow.fajr).add(config.offsets.fajr || 0, "minute");
+      } else {
+        // Adhan-Berechnung für morgen
+        const coords = new adhan.Coordinates(config.latitude, config.longitude);
+        const ptTomorrow = new adhan.PrayerTimes(coords, tomorrow.toDate(), adhan.CalculationMethod.Turkey());
+        nextFajr = dayjs(ptTomorrow.fajr).add(config.offsets.fajr || 0, "minute");
+      }
+      
+      found = { key: "fajr", t: nextFajr, isTomorrow: true };
+    }
+
+  // Ayah Refresh Trigger
+  if (found.key && config.iqama[found.key] === 0) fetchRandomAyah();
+  
+  return found;
+}, [times, now, config, calendar, today]);
 
   const currentPrayerKey = useMemo(() => {
     return [...PRAYER_ORDER].reverse().find(k => dayjs(times[k]).isSameOrBefore(now));
@@ -167,7 +191,7 @@ export default function PrayerTVBeautiful() {
       {/* HEADER */}
       <header className="flex items-center justify-between h-[15%]">
         <div className="flex flex-col gap-2 max-w-[65%]">
-          <h1 className="text-7xl font-black tracking-tight uppercase leading-none truncate drop-shadow-lg">
+          <h1 className="text-7xl font-medium tracking-tight uppercase leading-none truncate drop-shadow-lg">
             {config.name}
           </h1>
           <div className="flex gap-6 items-center">
@@ -182,9 +206,9 @@ export default function PrayerTVBeautiful() {
         </div>
 
         <div className="flex flex-col items-end">
-          <div className="text-[10rem] font-black tabular-nums leading-none flex items-baseline drop-shadow-2xl">
+          <div className="text-[10rem] font-medium tabular-nums leading-none flex items-baseline drop-shadow-2xl">
             {now.format("HH:mm")}
-            <span className="text-6xl text-emerald-500 font-black ml-6 tracking-[0.3em] opacity-90">{now.format("ss")}</span>
+            <span className="text-6xl text-emerald-500 font-medium ml-6 tracking-[0.3em] opacity-90">{now.format("ss")}</span>
           </div>
         </div>
       </header>
@@ -194,26 +218,28 @@ export default function PrayerTVBeautiful() {
         <Card className={`col-span-8 rounded-[55px] ${glass} border-t-emerald-500/50 border-t-8 flex flex-col`}>
           <CardContent className="p-12 h-full flex flex-col justify-between overflow-hidden">
             <div>
-              <p className="text-emerald-400 text-2xl font-black tracking-[0.3em] uppercase mb-6 flex items-center gap-4">
+              <p className="text-emerald-400 text-2xl font-medium tracking-[0.3em] uppercase mb-6 flex items-center gap-4">
                 <span className="w-14 h-1.5 bg-emerald-400" /> Nächstes Gebet
               </p>
-              <h2 className="text-[7.5rem] font-black leading-none tracking-tighter truncate">
+              <h2 className="text-[7.5rem] font-medium leading-none tracking-tighter">
                 {upcoming.key ? (
                   <>{LABELS[upcoming.key].tr} <span className="text-slate-600 font-thin text-6xl mx-4">/</span> <span className="text-emerald-50 text-[6.5rem]">{LABELS[upcoming.key].ar}</span></>
                 ) : "—"}
               </h2>
-              <p className="text-5xl font-bold text-slate-400 mt-6 tracking-tight italic">Beginn um {fmt(upcoming.t, config.tz)} Uhr</p>
+              <p className="text-5xl font-bold text-slate-400 mt-6 tracking-tight italic">
+                Beginn um {fmt(upcoming.t, config.tz)} Uhr {upcoming.isTomorrow ? "(Morgen)" : ""}
+              </p>
             </div>
 
             <div className="flex justify-between items-end">
               <div className="w-[60%]">
-                <p lang="de" className="text-slate-400 text-2xl font-black mb-3 uppercase tracking-widest">Verbleibend</p>
-                <p className="text-[8rem] font-black tabular-nums tracking-tighter leading-none">{remaining}</p>
+                <p lang="de" className="text-slate-400 text-2xl font-medium mb-3 uppercase tracking-widest">Verbleibend</p>
+                <p className="text-[8rem] font-medium tabular-nums tracking-tighter leading-none">{remaining}</p>
                 <div className="h-7 w-full bg-white/5 rounded-full mt-8 overflow-hidden border border-white/10 p-1 shadow-inner">
                   <motion.div initial={{ width: 0 }} animate={{ width: `${progressPct}%` }} className="h-full bg-gradient-to-r from-emerald-600 to-emerald-400 rounded-full shadow-[0_0_40px_rgba(16,185,129,0.5)]" />
                 </div>
               </div>
-              <div className="flex items-center gap-4 text-4xl font-black text-emerald-400 bg-white/5 px-10 py-6 rounded-[35px] border border-white/5 shadow-xl">
+              <div className="flex items-center gap-4 text-4xl font-medium text-emerald-400 bg-white/5 px-10 py-6 rounded-[35px] border border-white/5 shadow-xl">
                 <Moon className="h-10 w-10" />
                 {new Intl.DateTimeFormat("de-DE-u-ca-islamic", {day: "2-digit", month: "long", year: "numeric"}).format(now.toDate())}
               </div>
@@ -224,8 +250,8 @@ export default function PrayerTVBeautiful() {
         {/* RECHTS: AKTUELL / ZITAT */}
         <Card className={`col-span-4 rounded-[55px] ${glass} p-12 flex flex-col justify-between border-t-blue-500/50 border-t-8 overflow-hidden h-full`}>
           <div className="h-[25%] shrink-0">
-            <p className="text-blue-400 text-2xl font-black tracking-[0.3em] uppercase mb-2">Aktuell</p>
-            <h3 className="text-5xl font-black leading-tight italic truncate">
+            <p className="text-blue-400 text-2xl font-medium tracking-[0.3em] uppercase mb-2">Aktuell</p>
+            <h3 className="text-5xl font-medium leading-tight italic truncate">
               {currentPrayerKey ? (
                 <>{upcoming.key === "sunrise" ? "Sabah" : LABELS[currentPrayerKey].tr} <span className="text-slate-500 text-3xl">/ {LABELS[currentPrayerKey].ar}</span></>
               ) : "—"}
@@ -253,13 +279,13 @@ export default function PrayerTVBeautiful() {
                   >
                     "{randomAyah.text}"
                   </p>
-                  <p className="mt-4 text-lg text-emerald-500/70 font-black uppercase tracking-widest shrink-0 opacity-80">{randomAyah.ref}</p>
+                  <p className="mt-4 text-lg text-emerald-500/70 font-medium uppercase tracking-widest shrink-0 opacity-80">{randomAyah.ref}</p>
                 </motion.div>
               ) : (
                 <motion.div key="iqama" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col items-center">
                   <Clock className="h-12 w-12 text-emerald-500 mb-4 opacity-70" />
-                  <p className="text-2xl font-black text-slate-400 uppercase tracking-widest mb-2">Gamet / Iqama</p>
-                  <p className="text-[7.5rem] font-black tabular-nums leading-none">
+                  <p className="text-2xl font-medium text-slate-400 uppercase tracking-widest mb-2">Gamet / Iqama</p>
+                  <p className="text-[7.5rem] font-medium tabular-nums leading-none">
                     {upcoming.key === "sunrise" 
                       ? fmt(dayjs(times.sunrise).subtract(45, "minute"), config.tz)
                       : fmt(dayjs(times[upcoming.key]).add(config.iqama[upcoming.key], "minute"), config.tz)
@@ -277,16 +303,31 @@ export default function PrayerTVBeautiful() {
         {PRAYER_ORDER.map((k) => {
           const active = currentPrayerKey === k;
           const isNext = upcoming.key === k;
+
+          // Logik für die dynamischen Klassen
+          let statusClasses = "bg-white/5 border-transparent opacity-90"; // Standard (Vergangen/Zukünftig)
+
+          if (active) {
+            statusClasses = "bg-emerald-500 border-emerald-200 shadow-[0_0_80px_rgba(16,185,129,0.4)] scale-110 z-20 text-black";
+          } else if (isNext) {
+            // Hier die orangene Farbe für das nächste Gebet
+            statusClasses = "bg-orange-500 border-orange-300 shadow-[0_0_60px_rgba(249,115,22,0.3)] z-10 text-white animate-pulse-subtle";
+          }
+
           return (
-            <motion.div key={k} className={`rounded-[45px] p-8 border-4 transition-all duration-700 flex flex-col justify-center items-center text-center ${
-                active ? "bg-emerald-500 border-emerald-200 shadow-[0_0_80px_rgba(16,185,129,0.4)] scale-110 z-20 text-black" 
-                : isNext ? "bg-white/15 border-white/30 z-10" : "bg-white/5 border-transparent opacity-90"
-              }`}>
+            <motion.div 
+              key={k} 
+              className={`rounded-[45px] p-8 border-4 transition-all duration-700 flex flex-col justify-center items-center text-center ${statusClasses}`}
+            >
               <div className="flex flex-col mb-4">
-                <span lang="tr" className="text-4xl font-black uppercase tracking-tighter leading-none">{LABELS[k].tr}</span>
-                <span className={`text-2xl font-bold opacity-70 uppercase leading-none mt-1 ${active ? "text-black" : "text-slate-400"}`}>{LABELS[k].ar}</span>
+                <span lang="tr" className="text-4xl font-medium uppercase tracking-tighter leading-none">
+                  {LABELS[k].tr}
+                </span>
+                <span className={`text-2xl font-bold opacity-70 uppercase leading-none mt-1 ${active ? "text-black" : "text-slate-200"}`}>
+                  {LABELS[k].ar}
+                </span>
               </div>
-              <p className={`text-[5.5rem] font-black tabular-nums leading-none tracking-tighter ${active ? "text-black" : "text-white"}`}>
+              <p className={`text-[5.5rem] font-medium tabular-nums leading-none tracking-tighter ${active ? "text-black" : "text-white"}`}>
                 {fmt(times[k], config.tz)}
               </p>
             </motion.div>
