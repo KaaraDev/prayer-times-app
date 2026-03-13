@@ -54,6 +54,13 @@ export default function PrayerTVBeautiful() {
       tz: DEFAULT_TZ,
       offsets: { fajr: 0, sunrise: 0, dhuhr: 0, asr: 0, maghrib: 0, isha: 0 },
       iqama: { fajr: 0, dhuhr: 0, asr: 0, maghrib: 0, isha: 0 },
+
+      eidAlFitr: {
+        date: "2026-03-20",
+        sabahTime: "05:35",
+        prayerTime: "07:00",     // Eid-Gebet
+        title: "Ramazan Bayramı\nEId al-FItr"
+      },
     };
   });
 
@@ -63,6 +70,44 @@ export default function PrayerTVBeautiful() {
   const lastFetchRef = useRef(0);
 
   const today = useMemo(() => now.startOf("day"), [now]);
+
+  const hijriText = useMemo(() => {
+    const key = today.format("YYYY-MM-DD");
+    return calendar?.[key]?.hijri || "--";
+  }, [calendar, today]);
+
+  const eidInfo = useMemo(() => {
+    const eidDateStr = config?.eidAlFitr?.date;
+    const sabahTimeStr = config?.eidAlFitr?.sabahTime;
+    const eidPrayerTimeStr = config?.eidAlFitr?.prayerTime;
+
+    if (!eidDateStr || !sabahTimeStr || !eidPrayerTimeStr) {
+      return {
+        active: false,
+        isEidDay: false,
+        daysLeft: null,
+        sabahDateTime: null,
+        eidPrayerDateTime: null,
+      };
+    }
+
+    const eidDay = dayjs.tz(eidDateStr, config.tz).startOf("day");
+    const diffDays = eidDay.diff(today, "day");
+
+    const active = diffDays >= 0 && diffDays <= 8;
+    const isEidDay = diffDays === 0;
+
+    const sabahDateTime = toDateWithTime(eidDay, sabahTimeStr).toDate();
+    const eidPrayerDateTime = toDateWithTime(eidDay, eidPrayerTimeStr).toDate();
+
+    return {
+      active,
+      isEidDay,
+      daysLeft: diffDays,
+      sabahDateTime,
+      eidPrayerDateTime,
+    };
+  }, [config, today]);
 
   // Dynamische Berechnung der Schriftgröße basierend auf der Zeichenanzahl
   const dynamicFontSize = useMemo(() => {
@@ -110,7 +155,7 @@ export default function PrayerTVBeautiful() {
   };
 
   useEffect(() => {
-    fetch("/ditib-2026.json").then(res => res.json()).then(setCalendar).catch(console.error);
+    fetch("/diyanet-geislingen-2026.json").then(res => res.json()).then(setCalendar).catch(console.error);
     fetchRandomAyah(true);
   }, []);
 
@@ -190,16 +235,20 @@ export default function PrayerTVBeautiful() {
       
       {/* HEADER */}
       <header className="flex items-center justify-between h-[15%]">
-        <div className="flex flex-col gap-2 max-w-[65%]">
-          <h1 className="text-7xl font-medium tracking-tight uppercase leading-none truncate drop-shadow-lg">
-            {config.name}
-          </h1>
+        <div className="flex flex-col gap-2 max-w-[75%]">
+          <div className="flex items-center gap-6">
+            <img
+              src="dist\DITIB-Logo.svg.png"
+              alt="Moschee Logo"
+              className="h-16 w-auto object-contain"
+            />
+
+            <h1 className="text-7xl font-medium tracking-tight uppercase leading-none truncate drop-shadow-lg">
+              {config.name}
+            </h1>
+          </div>
           <div className="flex gap-6 items-center">
-            <Badge variant="outline" className="text-3xl border-emerald-500/30 px-6 py-2 bg-emerald-500/5 font-bold rounded-xl text-emerald-50">
-              <MapPin className="mr-3 h-8 w-8 text-emerald-400" /> 
-              {config.latitude.toFixed(3)}°, {config.longitude.toFixed(3)}°
-            </Badge>
-            <span className="text-4xl text-slate-400 font-bold tracking-tight">
+            <span className="text-5xl text-blue-200 font-bold mt-6">
               {now.format("dddd, DD. MMMM")}
             </span>
           </div>
@@ -208,7 +257,7 @@ export default function PrayerTVBeautiful() {
         <div className="flex flex-col items-end">
           <div className="text-[10rem] font-medium tabular-nums leading-none flex items-baseline drop-shadow-2xl">
             {now.format("HH:mm")}
-            <span className="text-6xl text-emerald-500 font-medium ml-6 tracking-[0.3em] opacity-90">{now.format("ss")}</span>
+            <span className="text-6xl text-emerald-500 font-medium ml-6 tracking-[0.1em] opacity-90">{now.format("ss")}</span>
           </div>
         </div>
       </header>
@@ -223,25 +272,28 @@ export default function PrayerTVBeautiful() {
               </p>
               <h2 className="text-[7.5rem] font-medium leading-none tracking-tighter">
                 {upcoming.key ? (
-                  <>{LABELS[upcoming.key].tr} <span className="text-slate-600 font-thin text-6xl mx-4">/</span> <span className="text-emerald-50 text-[6.5rem]">{LABELS[upcoming.key].ar}</span></>
+                  <>{LABELS[upcoming.key].tr} <span className="text-slate-600 font-thin text-[7.5rem] mx-4">/</span> <span className="text-emerald-50 text-[7.5rem]">{LABELS[upcoming.key].ar}</span></>
                 ) : "—"}
               </h2>
-              <p className="text-5xl font-bold text-slate-400 mt-6 tracking-tight italic">
+              <p className="text-5xl font-bold text-slate-400 mt-6 tracking-tight italic mt-12">
                 Beginn um {fmt(upcoming.t, config.tz)} Uhr {upcoming.isTomorrow ? "(Morgen)" : ""}
               </p>
             </div>
 
-            <div className="flex justify-between items-end">
-              <div className="w-[60%]">
+            <div className="flex justify-between items-end gap-8">
+              <div className="w-[52%]">
                 <p lang="de" className="text-slate-400 text-2xl font-medium mb-3 uppercase tracking-widest">Verbleibend</p>
                 <p className="text-[8rem] font-medium tabular-nums tracking-tighter leading-none">{remaining}</p>
                 <div className="h-7 w-full bg-white/5 rounded-full mt-8 overflow-hidden border border-white/10 p-1 shadow-inner">
                   <motion.div initial={{ width: 0 }} animate={{ width: `${progressPct}%` }} className="h-full bg-gradient-to-r from-emerald-600 to-emerald-400 rounded-full shadow-[0_0_40px_rgba(16,185,129,0.5)]" />
                 </div>
               </div>
-              <div className="flex items-center gap-4 text-4xl font-medium text-emerald-400 bg-white/5 px-10 py-6 rounded-[35px] border border-white/5 shadow-xl">
-                <Moon className="h-10 w-10" />
-                {new Intl.DateTimeFormat("de-DE-u-ca-islamic", {day: "2-digit", month: "long", year: "numeric"}).format(now.toDate())}
+
+              <div className="w-[42%] flex items-center justify-center gap-4 text-4xl font-medium text-emerald-400 bg-white/5 px-10 py-6 rounded-[35px] border border-white/5 shadow-xl">
+                <Moon className="h-10 w-10 shrink-0" />
+                <span className="text-center leading-tight">
+                  {hijriText}
+                </span>
               </div>
             </div>
           </CardContent>
@@ -249,47 +301,109 @@ export default function PrayerTVBeautiful() {
 
         {/* RECHTS: AKTUELL / ZITAT */}
         <Card className={`col-span-4 rounded-[55px] ${glass} p-12 flex flex-col justify-between border-t-blue-500/50 border-t-8 overflow-hidden h-full`}>
-          <div className="h-[25%] shrink-0">
-            <p className="text-blue-400 text-2xl font-medium tracking-[0.3em] uppercase mb-2">Aktuell</p>
-            <h3 className="text-5xl font-medium leading-tight italic truncate">
-              {currentPrayerKey ? (
-                <>{upcoming.key === "sunrise" ? "Sabah" : LABELS[currentPrayerKey].tr} <span className="text-slate-500 text-3xl">/ {LABELS[currentPrayerKey].ar}</span></>
-              ) : "—"}
-            </h3>
-            <p className="text-3xl font-bold text-slate-500 mt-1 tabular-nums">Seit {fmt(times[currentPrayerKey], config.tz)}</p>
-          </div>
+          {!eidInfo.active && (
+            <div className="h-[25%] shrink-0">
+              <p className="text-blue-400 text-2xl font-medium tracking-[0.3em] uppercase mb-2">Aktuell</p>
+              <h3 className="text-5xl font-medium leading-tight italic truncate">
+                {currentPrayerKey ? (
+                  <>{upcoming.key === "sunrise" ? "Sabah" : LABELS[currentPrayerKey].tr} <span className="text-slate-500 text-3xl">/ {LABELS[currentPrayerKey].ar}</span></>
+                ) : "—"}
+              </h3>
+              <p className="text-3xl font-bold text-slate-500 mt-1 tabular-nums">
+                Seit {fmt(times[currentPrayerKey], config.tz)}
+              </p>
+            </div>
+          )}
 
-          <div className="bg-white/5 rounded-[45px] p-6 text-center border border-white/5 shadow-inner h-[72%] flex flex-col justify-center items-center overflow-hidden">
-            <AnimatePresence mode="wait">
-              {upcoming.key && config.iqama[upcoming.key] === 0 ? (
-                <motion.div 
-                  key="ayah" 
-                  initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} 
+            <div className={`bg-white/5 rounded-[45px] p-6 text-center border border-white/5 shadow-inner flex flex-col justify-center items-center overflow-hidden ${eidInfo.active ? "h-full" : "h-[72%]"}`}>            <AnimatePresence mode="wait">
+              {eidInfo.active ? (
+                <motion.div
+                  key="eid-info"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="w-full h-full flex flex-col items-center justify-center text-center px-4"
+                >
+                  <p className="whitespace-pre-line text-3xl font-medium text-blue-400 uppercase tracking-[0.25em] mb-6">
+                    {config.eidAlFitr?.title || "Eid al-Fitr"}
+                  </p>
+
+                  <h4 className="text-3xl font-medium leading-tight text-white mb-10">
+                    {eidInfo.isEidDay
+                      ? "Heute ist Eid"
+                      : `Noch ${eidInfo.daysLeft} ${eidInfo.daysLeft === 1 ? "Tag" : "Tage"} bis Bayram / Eid`}
+                  </h4>
+
+                  <div className="w-full grid grid-cols-2 gap-8">
+                    <div className="bg-white/5 rounded-[32px] border border-white/10 p-10 flex flex-col items-center">
+                      <p className="text-2xl text-slate-200 uppercase tracking-widest mb-4">
+                        Fajr
+                      </p>
+                      <p className="text-[5rem] font-medium leading-none tabular-nums text-white">
+                        {fmt(eidInfo.sabahDateTime, config.tz)}
+                      </p>
+                      <p className="mt-4 text-2xl text-slate-200">
+                        Sabah
+                      </p>
+                    </div>
+
+                  <div className="bg-blue-500/10 rounded-[32px] border border-blue-400/20 p-10 flex flex-col items-center">                      
+                      <p className="text-2xl text-blue-200 uppercase tracking-widest mb-4">
+                        EId-Gebet
+                      </p>
+                      <p className="text-[5rem] font-medium leading-none tabular-nums text-blue-50">
+                        {fmt(eidInfo.eidPrayerDateTime, config.tz)}
+                      </p>
+                      <p className="mt-4 text-2xl text-blue-200">
+                        Bayram namazı
+                      </p>
+                    </div>
+                  </div>
+
+                  <p className="mt-8 text-3xl text-slate-200">
+                    {dayjs(config.eidAlFitr?.date).format("DD.MM.YYYY")}
+                  </p>
+                </motion.div>
+              ) : upcoming.key && config.iqama[upcoming.key] === 0 ? (
+                <motion.div
+                  key="ayah"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
                   className="w-full flex flex-col items-center justify-center"
-                  style={{ hyphens: 'auto', wordBreak: 'break-word' }}
+                  style={{ hyphens: "auto", wordBreak: "break-word" }}
                 >
                   <Quote className="h-10 w-10 text-emerald-500 mb-4 opacity-30 shrink-0" />
-                  <p 
+                  <p
                     lang="de"
                     className="font-medium text-slate-200 italic leading-[1.2] px-4 text-center antialiased"
-                    style={{ 
-                      fontSize: dynamicFontSize, // DYNAMISCHE SCHRIFTGRÖSSE
-                      transition: 'font-size 0.3s ease'
+                    style={{
+                      fontSize: dynamicFontSize,
+                      transition: "font-size 0.3s ease"
                     }}
                   >
                     "{randomAyah.text}"
                   </p>
-                  <p className="mt-4 text-lg text-emerald-500/70 font-medium uppercase tracking-widest shrink-0 opacity-80">{randomAyah.ref}</p>
+                  <p className="mt-4 text-lg text-emerald-500/70 font-medium uppercase tracking-widest shrink-0 opacity-80">
+                    {randomAyah.ref}
+                  </p>
                 </motion.div>
               ) : (
-                <motion.div key="iqama" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col items-center">
+                <motion.div
+                  key="iqama"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="flex flex-col items-center"
+                >
                   <Clock className="h-12 w-12 text-emerald-500 mb-4 opacity-70" />
-                  <p className="text-2xl font-medium text-slate-400 uppercase tracking-widest mb-2">Gamet / Iqama</p>
+                  <p className="text-2xl font-medium text-slate-400 uppercase tracking-widest mb-2">
+                    Gamet / Iqama
+                  </p>
                   <p className="text-[7.5rem] font-medium tabular-nums leading-none">
-                    {upcoming.key === "sunrise" 
+                    {upcoming.key === "sunrise"
                       ? fmt(dayjs(times.sunrise).subtract(45, "minute"), config.tz)
-                      : fmt(dayjs(times[upcoming.key]).add(config.iqama[upcoming.key], "minute"), config.tz)
-                    }
+                      : fmt(dayjs(times[upcoming.key]).add(config.iqama[upcoming.key], "minute"), config.tz)}
                   </p>
                 </motion.div>
               )}
@@ -302,7 +416,10 @@ export default function PrayerTVBeautiful() {
       <footer className="grid grid-cols-6 gap-6 h-[22%] mb-2">
         {PRAYER_ORDER.map((k) => {
           const active = currentPrayerKey === k;
-          const isNext = upcoming.key === k;
+
+          const isNext =
+            upcoming.key === k &&
+            (!upcoming.isTomorrow || now.hour() === 0);
 
           // Logik für die dynamischen Klassen
           let statusClasses = "bg-white/5 border-transparent opacity-90"; // Standard (Vergangen/Zukünftig)
@@ -323,7 +440,7 @@ export default function PrayerTVBeautiful() {
                 <span lang="tr" className="text-4xl font-medium uppercase tracking-tighter leading-none">
                   {LABELS[k].tr}
                 </span>
-                <span className={`text-2xl font-bold opacity-70 uppercase leading-none mt-1 ${active ? "text-black" : "text-slate-200"}`}>
+                <span className={`text-2xl font-bold opacity-70 uppercase leading-none mt-2 ${active ? "text-black" : "text-slate-200"}`}>
                   {LABELS[k].ar}
                 </span>
               </div>
