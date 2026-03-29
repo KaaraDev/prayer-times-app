@@ -38,9 +38,9 @@ const LABELS = {
   isha: { tr: "Yatsı", ar: "Isha" },
 };
 
-const toDateWithTime = (baseDate, hhmm) => {
-  const [h, m] = hhmm.split(":").map(Number);
-  return dayjs(baseDate).hour(h).minute(m).second(0).millisecond(0);
+const toDateWithTime = (baseDate, hhmm, tz = DEFAULT_TZ) => {
+  const dateStr = dayjs(baseDate).format("YYYY-MM-DD");
+  return dayjs.tz(`${dateStr} ${hhmm}`, "YYYY-MM-DD HH:mm", tz);
 };
 const fmt = (d, tz = DEFAULT_TZ) => (d ? dayjs(d).tz(tz).format("HH:mm") : "--:--");
 
