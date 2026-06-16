@@ -16,6 +16,7 @@ import { Progress } from "@/components/ui/progress";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Switch } from "@/components/ui/switch";
 import { Settings, Maximize2, MapPin, Clock, Quote, Sun, Cloud, CloudRain, CloudSnow, CloudLightning } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -43,6 +44,12 @@ const toDateWithTime = (baseDate, hhmm, tz = DEFAULT_TZ) => {
   return dayjs.tz(`${dateStr} ${hhmm}`, "YYYY-MM-DD HH:mm", tz);
 };
 const fmt = (d, tz = DEFAULT_TZ) => (d ? dayjs(d).tz(tz).format("HH:mm") : "--:--");
+
+const fittedMosqueTitleStyle = {
+  fontSize: "clamp(2rem, 2.35vw, 3rem)",
+  lineHeight: 0.95,
+  overflowWrap: "anywhere",
+};
 
 // Mondphase (0 = Neumond, 0.5 = Vollmond, 1 = Neumond) für ein beliebiges Datum
 const getMoonPhase = (date) => {
@@ -193,9 +200,50 @@ const UI_THEMES = [
       "--accent-glow": "rgba(214,169,58,0.45)",
       "--accent2": "#fcd34d",
       "--accent2-soft": "rgba(252,211,77,0.12)",
-      "--next": "#fb923c",
-      "--next-border": "#fed7aa",
-      "--next-glow": "rgba(251,146,60,0.40)",
+      "--next": "#f8fafc",
+      "--next-border": "#ffffff",
+      "--next-glow": "rgba(248,250,252,0.52)",
+    },
+  },
+  {
+    id: "silver",
+    label: "Silber",
+    swatch: ["#f8fafc", "#cbd5e1", "#0b0f17"],
+    vars: {
+      "--bg":
+        "radial-gradient(120% 80% at 50% -10%, rgba(248,250,252,0.20) 0%, transparent 45%), radial-gradient(90% 60% at 90% 110%, rgba(203,213,225,0.16) 0%, transparent 50%), linear-gradient(160deg, #171d26 0%, #0b0f17 60%, #05070b 100%)",
+      "--accent": "#f8fafc",
+      "--accent-strong": "#cbd5e1",
+      "--accent-light": "#ffffff",
+      "--accent-glow": "rgba(226,232,240,0.62)",
+      "--accent2": "#e2e8f0",
+      "--accent2-soft": "rgba(226,232,240,0.16)",
+      "--next": "#f8fafc",
+      "--next-border": "#ffffff",
+      "--next-glow": "rgba(248,250,252,0.52)",
+    },
+  },
+  {
+    id: "whiteGold",
+    label: "Weiß / Gold",
+    swatch: ["#ffffff", "#d6a93a", "#f7ead0"],
+    vars: {
+      "--bg":
+        "radial-gradient(120% 85% at 50% -12%, rgba(255,255,255,0.96) 0%, transparent 50%), radial-gradient(95% 65% at 88% 112%, rgba(214,169,58,0.22) 0%, transparent 54%), linear-gradient(160deg, #ffffff 0%, #f8f1e2 52%, #ead9b8 100%)",
+      "--ink": "#1f2937",
+      "--ink-soft": "#6b5b35",
+      "--surface": "rgba(255,255,255,0.72)",
+      "--surface-border": "rgba(214,169,58,0.22)",
+      "--surface-2": "rgba(214,169,58,0.10)",
+      "--accent": "#d6a93a",
+      "--accent-strong": "#b8860b",
+      "--accent-light": "#7c5d13",
+      "--accent-glow": "rgba(214,169,58,0.42)",
+      "--accent2": "#f3cf72",
+      "--accent2-soft": "rgba(214,169,58,0.16)",
+      "--next": "#b8860b",
+      "--next-border": "#d6a93a",
+      "--next-glow": "rgba(214,169,58,0.40)",
     },
   },
   {
@@ -254,6 +302,14 @@ const UI_THEMES = [
   },
 ];
 
+const DEFAULT_AUTO_THEME = {
+  enabled: false,
+  dayTheme: "whiteGold",
+  nightTheme: "midnight",
+};
+
+const isThemeId = (id) => UI_THEMES.some((t) => t.id === id);
+
 const GLASS = "bg-[var(--surface)] border-[color:var(--surface-border)] backdrop-blur-3xl shadow-2xl";
 
 function WeatherIcon({ code, ...props }) {
@@ -273,6 +329,23 @@ function WeatherBadge({ weather, iconSize = "h-9 w-9", textSize = "text-4xl" }) 
     <div className="flex items-center gap-2 text-[color:var(--ink-soft)]">
       <WeatherIcon code={weather.code} className={iconSize} />
       <span className={`${textSize} font-medium tabular-nums`}>{weather.temp}°C</span>
+    </div>
+  );
+}
+
+const LINKEDIN_QR_SRC =
+  "https://api.qrserver.com/v1/create-qr-code/?size=96x96" +
+  "&data=https%3A%2F%2Fwww.linkedin.com%2Fin%2Fmetin-g%C3%BCrler-317704278%2F" +
+  "&color=000000&bgcolor=FFFFFF&margin=2";
+
+function CreatorBadge() {
+  return (
+    <div className={`absolute bottom-3 right-3 z-40 ${GLASS} rounded-xl p-1.5 flex items-center gap-2`}>
+      <img src={LINKEDIN_QR_SRC} alt="LinkedIn QR" width={36} height={36} className="block rounded-md shrink-0" />
+      <div className="flex flex-col pr-1">
+        <span className="text-[0.55rem] font-medium uppercase tracking-widest text-[color:var(--ink-soft)] leading-none">Metin Gürler</span>
+        <span className="text-[0.5rem] text-[color:var(--accent)] leading-none mt-0.5">LinkedIn ↗</span>
+      </div>
     </div>
   );
 }
@@ -717,9 +790,30 @@ export default function PrayerTVBeautiful() {
     const saved = typeof window !== "undefined" ? localStorage.getItem("prayer_ui_theme") : null;
     return saved && UI_THEMES.some((t) => t.id === saved) ? saved : "midnight";
   });
+  const [autoTheme, setAutoTheme] = useState(() => {
+    try {
+      const saved = typeof window !== "undefined" ? localStorage.getItem("prayer_auto_theme") : null;
+      const parsed = saved ? JSON.parse(saved) : null;
+      return {
+        enabled: Boolean(parsed?.enabled ?? DEFAULT_AUTO_THEME.enabled),
+        dayTheme: isThemeId(parsed?.dayTheme) ? parsed.dayTheme : DEFAULT_AUTO_THEME.dayTheme,
+        nightTheme: isThemeId(parsed?.nightTheme) ? parsed.nightTheme : DEFAULT_AUTO_THEME.nightTheme,
+      };
+    } catch {
+      return DEFAULT_AUTO_THEME;
+    }
+  });
   const [layout, setLayout] = useState(() => {
     const saved = typeof window !== "undefined" ? localStorage.getItem("prayer_layout") : null;
     return saved && LAYOUTS.some((l) => l.id === saved) ? saved : "classic";
+  });
+  const [mihrabBg, setMihrabBg] = useState(() => {
+    const saved = typeof window !== "undefined" ? localStorage.getItem("prayer_mihrab_bg") : null;
+    return saved === "ottoman" ? "ottoman" : "selcuklu";
+  });
+  const [showCreatorBadge, setShowCreatorBadge] = useState(() => {
+    const saved = typeof window !== "undefined" ? localStorage.getItem("prayer_creator_badge") : null;
+    return saved === null ? true : saved === "true";
   });
   const [religiousDays, setReligiousDays] = useState(() => {
     try {
@@ -738,11 +832,6 @@ export default function PrayerTVBeautiful() {
   const updateDay = (id, patch) =>
     setReligiousDays((prev) => prev.map((d) => (d.id === id ? { ...d, ...patch } : d)));
 
-  const theme = useMemo(
-    () => UI_THEMES.find((t) => t.id === uiTheme) || UI_THEMES[0],
-    [uiTheme]
-  );
-
   useEffect(() => {
     if (typeof window !== "undefined") localStorage.setItem("prayer_moon_design", moonDesign);
   }, [moonDesign]);
@@ -752,8 +841,20 @@ export default function PrayerTVBeautiful() {
   }, [uiTheme]);
 
   useEffect(() => {
+    if (typeof window !== "undefined") localStorage.setItem("prayer_auto_theme", JSON.stringify(autoTheme));
+  }, [autoTheme]);
+
+  useEffect(() => {
     if (typeof window !== "undefined") localStorage.setItem("prayer_layout", layout);
   }, [layout]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") localStorage.setItem("prayer_mihrab_bg", mihrabBg);
+  }, [mihrabBg]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") localStorage.setItem("prayer_creator_badge", String(showCreatorBadge));
+  }, [showCreatorBadge]);
 
   useEffect(() => {
     if (typeof window !== "undefined") localStorage.setItem("prayer_religious_days", JSON.stringify(religiousDays));
@@ -891,6 +992,25 @@ export default function PrayerTVBeautiful() {
     return shifted;
   }, [today, calendar, config]);
 
+  const effectiveThemeState = useMemo(() => {
+    if (!autoTheme.enabled) return { id: uiTheme, phase: "manual" };
+
+    const sunrise = dayjs(times.sunrise);
+    const nightStart = dayjs(times.maghrib).subtract(30, "minute");
+    const isNight = now.isBefore(sunrise) || !now.isBefore(nightStart);
+    const id = isNight ? autoTheme.nightTheme : autoTheme.dayTheme;
+
+    return {
+      id: isThemeId(id) ? id : uiTheme,
+      phase: isNight ? "night" : "day",
+    };
+  }, [autoTheme, uiTheme, times.sunrise, times.maghrib, now]);
+
+  const theme = useMemo(
+    () => UI_THEMES.find((t) => t.id === effectiveThemeState.id) || UI_THEMES[0],
+    [effectiveThemeState.id]
+  );
+
   useEffect(() => {
     const id = setInterval(() => setNow(dayjs().tz(config.tz)), 1000);
     return () => clearInterval(id);
@@ -948,8 +1068,36 @@ export default function PrayerTVBeautiful() {
 
   const view = {
     config, now, hijriText, specialDay, dynamicFontSize, randomAyah,
-    times, upcoming, currentPrayerKey, remaining, progressPct, moonDesign, weather,
+    times, upcoming, currentPrayerKey, remaining, progressPct, moonDesign, weather, mihrabBg,
   };
+
+  const renderThemePicker = (selectedId, onSelect) => (
+    <div className="grid grid-cols-2 gap-3 mt-3">
+      {UI_THEMES.map((t) => (
+        <button
+          key={t.id}
+          type="button"
+          onClick={() => onSelect(t.id)}
+          className={`flex items-center gap-3 rounded-2xl border p-3 transition ${
+            selectedId === t.id
+              ? "border-emerald-400 bg-emerald-500/10"
+              : "border-white/10 bg-white/5 hover:bg-white/10"
+          }`}
+        >
+          <span className="flex shrink-0 -space-x-1.5">
+            {t.swatch.map((c, i) => (
+              <span
+                key={i}
+                className="h-5 w-5 rounded-full border border-black/40"
+                style={{ background: c }}
+              />
+            ))}
+          </span>
+          <span className="text-sm text-slate-200">{t.label}</span>
+        </button>
+      ))}
+    </div>
+  );
 
   return (
     <div
@@ -1158,11 +1306,19 @@ export default function PrayerTVBeautiful() {
       </div>
       )}
 
-      <div className="absolute bottom-4 right-4 z-50 opacity-0 hover:opacity-100 transition-opacity">
+      {showCreatorBadge && <CreatorBadge />}
+
+      <div className="absolute bottom-4 right-4 z-50 opacity-30 hover:opacity-100 transition-opacity">
         <Sheet>
           <SheetTrigger asChild><Button size="icon" variant="ghost"><Settings className="h-4 w-4" /></Button></SheetTrigger>
           <SheetContent className="bg-slate-950 text-white border-white/10 overflow-y-auto">
             <SheetHeader><SheetTitle>Konfiguration</SheetTitle></SheetHeader>
+
+            <div className="mt-4 flex items-center justify-between">
+              <Label>Creator-Badge anzeigen</Label>
+              <Switch checked={showCreatorBadge} onCheckedChange={setShowCreatorBadge} />
+            </div>
+
             <div className="mt-4"><Label>Moschee Name</Label><Input value={config.name} onChange={(e)=>setConfig({...config, name:e.target.value})} className="bg-white/5 mt-2"/></div>
 
             <div className="mt-8">
@@ -1185,33 +1341,65 @@ export default function PrayerTVBeautiful() {
               </div>
             </div>
 
+            {layout === "mihrab" && (
+              <div className="mt-8">
+                <Label>Mihrab Hintergrund</Label>
+                <div className="grid grid-cols-2 gap-3 mt-3">
+                  {[
+                    { id: "selcuklu", label: "Selçuklu", sub: "Rotierendes Medaillon" },
+                    { id: "ottoman",  label: "Osmanlı",  sub: "Wappen / Arma" },
+                  ].map((opt) => (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => setMihrabBg(opt.id)}
+                      className={`rounded-2xl border p-3 text-left transition ${
+                        mihrabBg === opt.id
+                          ? "border-emerald-400 bg-emerald-500/10 text-white"
+                          : "border-white/10 bg-white/5 hover:bg-white/10 text-slate-200"
+                      }`}
+                    >
+                      <div className="text-sm font-medium">{opt.label}</div>
+                      <div className="text-xs text-slate-400 mt-0.5">{opt.sub}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="mt-8">
               <Label>Farbschema</Label>
-              <div className="grid grid-cols-2 gap-3 mt-3">
-                {UI_THEMES.map((t) => (
-                  <button
-                    key={t.id}
-                    type="button"
-                    onClick={() => setUiTheme(t.id)}
-                    className={`flex items-center gap-3 rounded-2xl border p-3 transition ${
-                      uiTheme === t.id
-                        ? "border-emerald-400 bg-emerald-500/10"
-                        : "border-white/10 bg-white/5 hover:bg-white/10"
-                    }`}
-                  >
-                    <span className="flex shrink-0 -space-x-1.5">
-                      {t.swatch.map((c, i) => (
-                        <span
-                          key={i}
-                          className="h-5 w-5 rounded-full border border-black/40"
-                          style={{ background: c }}
-                        />
-                      ))}
-                    </span>
-                    <span className="text-sm text-slate-200">{t.label}</span>
-                  </button>
-                ))}
+              <div className="mt-3 flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 p-3">
+                <div>
+                  <div className="text-sm font-medium text-slate-100">Automatischer Tag/Nacht-Modus</div>
+                  <div className="mt-1 text-xs text-slate-400">
+                    Aktiv: {effectiveThemeState.phase === "night" ? "Nacht" : effectiveThemeState.phase === "day" ? "Tag" : "Manuell"}
+                  </div>
+                </div>
+                <Switch
+                  checked={autoTheme.enabled}
+                  onCheckedChange={(enabled) => setAutoTheme((prev) => ({ ...prev, enabled }))}
+                />
               </div>
+
+              {autoTheme.enabled ? (
+                <div className="mt-5 flex flex-col gap-5">
+                  <div>
+                    <Label>Tag-Modus</Label>
+                    {renderThemePicker(autoTheme.dayTheme, (dayTheme) =>
+                      setAutoTheme((prev) => ({ ...prev, dayTheme }))
+                    )}
+                  </div>
+                  <div>
+                    <Label>Nacht-Modus</Label>
+                    {renderThemePicker(autoTheme.nightTheme, (nightTheme) =>
+                      setAutoTheme((prev) => ({ ...prev, nightTheme }))
+                    )}
+                  </div>
+                </div>
+              ) : (
+                renderThemePicker(uiTheme, setUiTheme)
+              )}
             </div>
 
             <div className="mt-8">
@@ -1710,11 +1898,274 @@ function AuroraLayout({ view }) {
 }
 
 // Animierter Hintergrund für das Mihrab-Layout: Zellige-Raster, rotierendes Mandala, Bodenschein
-function MihrabBackground() {
+// ── Selçuklu rotating geometric medallion ──────────────────────────────────
+function SelcukluBackground() {
+  const hexPts = (R, offsetDeg = 0) =>
+    Array.from({ length: 6 }, (_, i) => {
+      const a = ((i * 60 + offsetDeg) * Math.PI) / 180;
+      return `${(100 + R * Math.sin(a)).toFixed(1)},${(100 - R * Math.cos(a)).toFixed(1)}`;
+    }).join(" ");
+
+  const pt = (R, deg) => ({
+    x: +(100 + R * Math.sin((deg * Math.PI) / 180)).toFixed(1),
+    y: +(100 - R * Math.cos((deg * Math.PI) / 180)).toFixed(1),
+  });
+
+  return (
+    <motion.div
+      className="absolute inset-0 flex items-center justify-center"
+      animate={{ rotate: 360 }}
+      transition={{ duration: 150, repeat: Infinity, ease: "linear" }}
+    >
+      <svg viewBox="0 0 200 200" fill="none" stroke="currentColor"
+        className="text-[color:var(--accent2)]"
+        style={{ width: "82vh", height: "82vh", opacity: 0.08 }}
+        aria-hidden="true">
+        <g strokeLinejoin="round">
+          <circle cx="100" cy="100" r="96" strokeWidth="1.4" />
+          {Array.from({ length: 24 }, (_, i) => {
+            const p1 = pt(90, i * 15), p2 = pt(96, i * 15);
+            return <line key={`t${i}`} x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y} strokeWidth="1.3" />;
+          })}
+          <polygon points={hexPts(82, 0)}  strokeWidth="0.95" />
+          <polygon points={hexPts(82, 30)} strokeWidth="0.95" />
+          {Array.from({ length: 12 }, (_, i) => {
+            const o = pt(82, i * 30), i1 = pt(55, i * 30 + 15), i2 = pt(55, i * 30 - 15);
+            return (
+              <g key={`f1${i}`} strokeWidth="0.65">
+                <line x1={o.x} y1={o.y} x2={i1.x} y2={i1.y} />
+                <line x1={o.x} y1={o.y} x2={i2.x} y2={i2.y} />
+              </g>
+            );
+          })}
+          <circle cx="100" cy="100" r="55" strokeWidth="0.8" />
+          <polygon points={hexPts(55, 0)}  strokeWidth="0.85" />
+          <polygon points={hexPts(55, 30)} strokeWidth="0.85" />
+          {Array.from({ length: 12 }, (_, i) => {
+            const o = pt(55, i * 30), i1 = pt(28, i * 30 + 15), i2 = pt(28, i * 30 - 15);
+            return (
+              <g key={`f2${i}`} strokeWidth="0.6">
+                <line x1={o.x} y1={o.y} x2={i1.x} y2={i1.y} />
+                <line x1={o.x} y1={o.y} x2={i2.x} y2={i2.y} />
+              </g>
+            );
+          })}
+          <circle cx="100" cy="100" r="28" strokeWidth="0.75" />
+          <polygon points={hexPts(28, 0)}  strokeWidth="0.8" />
+          <polygon points={hexPts(28, 30)} strokeWidth="0.8" />
+          <circle cx="100" cy="100" r="12" strokeWidth="0.7" />
+          <circle cx="100" cy="100" r="6"  strokeWidth="0.65" />
+          {Array.from({ length: 12 }, (_, i) => {
+            const p1 = pt(6, i * 30), p2 = pt(12, i * 30);
+            return <line key={`p${i}`} x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y} strokeWidth="0.6" />;
+          })}
+          <circle cx="100" cy="100" r="3" strokeWidth="0.75" />
+        </g>
+      </svg>
+    </motion.div>
+  );
+}
+
+// ── Ottoman coat of arms watermark ─────────────────────────────────────────
+function OttomanBackground() {
+  // 5-pointed star polygon points around (cx, cy)
+  const starPts = (ro, ri, cx = 0, cy = 0) =>
+    Array.from({ length: 10 }, (_, i) => {
+      const a = ((i * 36 - 90) * Math.PI) / 180;
+      const r = i % 2 === 0 ? ro : ri;
+      return `${(cx + r * Math.cos(a)).toFixed(1)},${(cy + r * Math.sin(a)).toFixed(1)}`;
+    }).join(" ");
+
+  // Spokes of a wheel/rosette from inner radius r1 to outer r2, n spokes
+  const spokes = (r1, r2, n, cx, cy) =>
+    Array.from({ length: n }, (_, i) => {
+      const a = ((i * (360 / n)) * Math.PI) / 180;
+      return {
+        x1: (cx + r1 * Math.cos(a)).toFixed(1), y1: (cy + r1 * Math.sin(a)).toFixed(1),
+        x2: (cx + r2 * Math.cos(a)).toFixed(1), y2: (cy + r2 * Math.sin(a)).toFixed(1),
+      };
+    });
+
+  // Weapon angles (degrees from 12 o'clock, clockwise). 9 per side, mirrored.
+  const weaponAngles = [14, 27, 41, 56, 71, 87, 104, 120, 135];
+  const weaponLens   = [112, 122, 128, 130, 126, 118, 108,  96,  86];
+
+  return (
+    <motion.div
+        className="absolute inset-0 flex items-center justify-center"
+        animate={{ scale: [0.988, 1.012, 0.988], opacity: [0.75, 1, 0.75] }}
+        transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
+      >
+        <svg
+          viewBox="0 0 300 375"
+          fill="none"
+          stroke="currentColor"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="text-[color:var(--accent2)]"
+          style={{ height: "78vh", width: "auto", opacity: 0.09 }}
+          aria-hidden="true"
+        >
+          {/* ══════════════════════════════════════
+              RADIATING WEAPONS  (spears / swords / cannons)
+              Radiate from (150, 155) – right side + mirror left
+          ══════════════════════════════════════ */}
+          {weaponAngles.map((deg, i) => {
+            const len = weaponLens[i];
+            // Right side
+            const ar = (deg * Math.PI) / 180;
+            const xr = (150 + len * Math.sin(ar)).toFixed(1);
+            const yr = (155 - len * Math.cos(ar)).toFixed(1);
+            // Left side (mirror)
+            const al = ((-deg) * Math.PI) / 180;
+            const xl = (150 + len * Math.sin(al)).toFixed(1);
+            const yl = (155 - len * Math.cos(al)).toFixed(1);
+            return (
+              <g key={`wp${i}`} strokeWidth="1.05">
+                <line x1="150" y1="155" x2={xr} y2={yr} />
+                <circle cx={xr} cy={yr} r="2" strokeWidth="0.8" />
+                <line x1="150" y1="155" x2={xl} y2={yl} />
+                <circle cx={xl} cy={yl} r="2" strokeWidth="0.8" />
+              </g>
+            );
+          })}
+
+          {/* ══════════════════════════════════════
+              SUNBURST MEDALLION  (top circle with tugra)
+          ══════════════════════════════════════ */}
+          {Array.from({ length: 24 }, (_, i) => {
+            const a  = ((i * 15) * Math.PI) / 180;
+            const r2 = i % 2 === 0 ? 35 : 30;
+            return (
+              <line key={`ray${i}`}
+                x1={(150 + 22 * Math.sin(a)).toFixed(1)} y1={(56 - 22 * Math.cos(a)).toFixed(1)}
+                x2={(150 + r2 * Math.sin(a)).toFixed(1)} y2={(56 - r2 * Math.cos(a)).toFixed(1)}
+                strokeWidth={i % 2 === 0 ? "1.3" : "0.8"}
+              />
+            );
+          })}
+          <circle cx="150" cy="56" r="22" strokeWidth="1.25" />
+          <circle cx="150" cy="56" r="15" strokeWidth="0.8" />
+          {/* Tugra suggestion inside */}
+          <ellipse cx="150" cy="56" rx="7" ry="4.5" strokeWidth="0.75" />
+          <path d="M 143 54 L 157 54 M 145 57 L 155 57 M 147 60 L 153 60" strokeWidth="0.6" />
+
+          {/* ══════════════════════════════════════
+              CRESCENT  (below sunburst, opening upward)
+              Outer circle: cx=150 cy=115 r=30
+              Inner offset: cx=150 cy=105 r=24
+              Intersection pts: (128.8, 93.8) & (171.2, 93.8)
+          ══════════════════════════════════════ */}
+          <path
+            d="M 128.8 93.8 A 30 30 0 1 1 171.2 93.8 A 24 24 0 1 0 128.8 93.8 Z"
+            strokeWidth="1.2"
+          />
+          {/* Small star beside crescent */}
+          <polygon points={starPts(6, 2.6, 176, 94)} strokeWidth="0.75" />
+
+          {/* ══════════════════════════════════════
+              LEFT FLAG  (green / simplified triangle)
+          ══════════════════════════════════════ */}
+          <path d="M 108 108 L 72 140 L 98 198 L 145 148 Z" strokeWidth="1.1" />
+          <path d="M 92 150 A 12 12 0 0 1 114 150 A 9 9 0 0 0 92 150 Z" strokeWidth="0.8" />
+          <polygon points={starPts(4, 1.7, 117, 153)} strokeWidth="0.65" />
+
+          {/* ══════════════════════════════════════
+              RIGHT FLAG  (red / mirror)
+          ══════════════════════════════════════ */}
+          <path d="M 192 108 L 228 140 L 202 198 L 155 148 Z" strokeWidth="1.1" />
+          <path d="M 186 150 A 12 12 0 0 1 208 150 A 9 9 0 0 0 186 150 Z" strokeWidth="0.8" />
+          <polygon points={starPts(4, 1.7, 183, 153)} strokeWidth="0.65" />
+
+          {/* ══════════════════════════════════════
+              CENTRAL OVAL SHIELD
+          ══════════════════════════════════════ */}
+          <ellipse cx="150" cy="163" rx="37" ry="47" strokeWidth="1.4" />
+          <ellipse cx="150" cy="163" rx="28" ry="36" strokeWidth="0.7" />
+          {Array.from({ length: 16 }, (_, i) => {
+            const a = ((i * 22.5) * Math.PI) / 180;
+            return (
+              <line key={`ov${i}`}
+                x1={(150 + 10 * Math.sin(a)).toFixed(1)} y1={(163 - 10 * Math.cos(a)).toFixed(1)}
+                x2={(150 + 24 * Math.sin(a)).toFixed(1)} y2={(163 - 24 * Math.cos(a)).toFixed(1)}
+                strokeWidth="0.65"
+              />
+            );
+          })}
+          <circle cx="150" cy="163" r="9" strokeWidth="0.85" />
+
+          {/* ══════════════════════════════════════
+              SCROLLWORK BASE  (baroque ornamental curves)
+          ══════════════════════════════════════ */}
+          {/* Connecting arch */}
+          <path d="M 86 222 C 106 212, 128 208, 150 208 C 172 208, 194 212, 214 222" strokeWidth="1.2" />
+          {/* Left scroll */}
+          <path d="M 86 222 C 60 230, 46 247, 57 257 C 68 267, 83 256, 87 268 C 91 279, 75 287, 65 282" strokeWidth="1.1" />
+          {/* Right scroll (mirror) */}
+          <path d="M 214 222 C 240 230, 254 247, 243 257 C 232 267, 217 256, 213 268 C 209 279, 225 287, 235 282" strokeWidth="1.1" />
+          {/* Center fleur stem */}
+          <line x1="150" y1="208" x2="150" y2="238" strokeWidth="1.1" />
+          <path d="M 136 224 C 134 213, 150 208, 150 208 C 150 208, 166 213, 164 224" strokeWidth="1.0" />
+          {/* Bottom drop ornament */}
+          <path d="M 150 238 C 143 250, 135 255, 132 266 C 129 277, 138 283, 150 283 C 162 283, 171 277, 168 266 C 165 255, 157 250, 150 238 Z" strokeWidth="1.0" />
+          <ellipse cx="150" cy="266" rx="8.5" ry="11" strokeWidth="0.7" />
+
+          {/* ══════════════════════════════════════
+              HANGING CONNECTIONS
+          ══════════════════════════════════════ */}
+          <line x1="67"  y1="282" x2="67"  y2="310" strokeWidth="0.9" />
+          <line x1="103" y1="285" x2="108" y2="312" strokeWidth="0.9" />
+          <line x1="150" y1="283" x2="150" y2="317" strokeWidth="0.9" />
+          <line x1="197" y1="285" x2="192" y2="312" strokeWidth="0.9" />
+          <line x1="233" y1="282" x2="233" y2="310" strokeWidth="0.9" />
+
+          {/* ══════════════════════════════════════
+              BOTTOM MEDALLIONS  (5 pieces)
+          ══════════════════════════════════════ */}
+          {/* Outer left – 6-pointed star */}
+          <polygon points={starPts(13, 6, 67, 324)} strokeWidth="0.9" />
+          <circle cx="67" cy="324" r="13" strokeWidth="0.75" />
+          <circle cx="67" cy="324" r="4.5" strokeWidth="0.65" />
+
+          {/* Inner left – wheel rosette */}
+          <circle cx="108" cy="325" r="13" strokeWidth="0.9" />
+          <circle cx="108" cy="325" r="7"  strokeWidth="0.7" />
+          {spokes(7, 13, 8, 108, 325).map((s, i) => (
+            <line key={`lw${i}`} x1={s.x1} y1={s.y1} x2={s.x2} y2={s.y2} strokeWidth="0.75" />
+          ))}
+          <circle cx="108" cy="325" r="3" strokeWidth="0.65" />
+
+          {/* Center – vertical drop rosette */}
+          <ellipse cx="150" cy="342" rx="13" ry="17" strokeWidth="0.9" />
+          <ellipse cx="150" cy="342" rx="7.5" ry="10" strokeWidth="0.7" />
+          {spokes(5, 8, 8, 150, 342).map((s, i) => (
+            <line key={`cw${i}`} x1={s.x1} y1={s.y1} x2={s.x2} y2={s.y2} strokeWidth="0.65" />
+          ))}
+
+          {/* Inner right – wheel rosette */}
+          <circle cx="192" cy="325" r="13" strokeWidth="0.9" />
+          <circle cx="192" cy="325" r="7"  strokeWidth="0.7" />
+          {spokes(7, 13, 8, 192, 325).map((s, i) => (
+            <line key={`rw${i}`} x1={s.x1} y1={s.y1} x2={s.x2} y2={s.y2} strokeWidth="0.75" />
+          ))}
+          <circle cx="192" cy="325" r="3" strokeWidth="0.65" />
+
+          {/* Outer right – 6-pointed star */}
+          <polygon points={starPts(13, 6, 233, 324)} strokeWidth="0.9" />
+          <circle cx="233" cy="324" r="13" strokeWidth="0.75" />
+          <circle cx="233" cy="324" r="4.5" strokeWidth="0.65" />
+
+        </svg>
+      </motion.div>
+  );
+}
+
+// ── Shared wrapper: tile grid + chosen motif + floor glow ──────────────────
+function MihrabBackground({ bgStyle = "selcuklu" }) {
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
-      {/* Zellige-/Rautenraster */}
-      <svg className="absolute inset-0 h-full w-full text-[color:var(--accent)]" style={{ opacity: 0.06 }} aria-hidden="true">
+      {/* Zellige tile grid */}
+      <svg className="absolute inset-0 h-full w-full text-[color:var(--accent)]" style={{ opacity: 0.05 }} aria-hidden="true">
         <defs>
           <pattern id="mihrabTile" width="56" height="96" patternUnits="userSpaceOnUse">
             <g fill="none" stroke="currentColor" strokeWidth="1">
@@ -1726,25 +2177,7 @@ function MihrabBackground() {
         <rect width="100%" height="100%" fill="url(#mihrabTile)" />
       </svg>
 
-      {/* langsam rotierendes Mandala */}
-      <motion.div
-        className="absolute inset-0 flex items-center justify-center"
-        animate={{ rotate: 360 }}
-        transition={{ duration: 150, repeat: Infinity, ease: "linear" }}
-      >
-        <svg viewBox="0 0 200 200" className="text-[color:var(--accent2)]" style={{ width: "82vh", height: "82vh", opacity: 0.07 }} aria-hidden="true">
-          <g fill="none" stroke="currentColor" strokeWidth="0.8">
-            <circle cx="100" cy="100" r="96" />
-            <circle cx="100" cy="100" r="74" />
-            <circle cx="100" cy="100" r="50" />
-            {Array.from({ length: 12 }).map((_, i) => (
-              <line key={i} x1="100" y1="4" x2="100" y2="100" transform={`rotate(${i * 30} 100 100)`} />
-            ))}
-            <rect x="42" y="42" width="116" height="116" transform="rotate(0 100 100)" />
-            <rect x="42" y="42" width="116" height="116" transform="rotate(45 100 100)" />
-          </g>
-        </svg>
-      </motion.div>
+      {bgStyle === "ottoman" ? <OttomanBackground /> : <SelcukluBackground />}
 
       {/* Bodenschein */}
       <div
@@ -1759,22 +2192,27 @@ function MihrabBackground() {
 function MihrabLayout({ view }) {
   const {
     config, now, hijriText, specialDay, randomAyah,
-    times, upcoming, currentPrayerKey, remaining, progressPct, moonDesign, weather,
+    times, upcoming, currentPrayerKey, remaining, progressPct, moonDesign, weather, mihrabBg,
   } = view;
 
   const pct = Math.min(100, Math.max(0, progressPct));
 
   return (
     <div className="relative h-full w-full overflow-hidden">
-      <MihrabBackground />
+      <MihrabBackground bgStyle={mihrabBg} />
       <div className="relative z-10 h-full w-full p-8 grid grid-cols-12 gap-8">
         {/* LINKS: vertikale Gebetsliste */}
         <aside className={`col-span-4 rounded-[40px] ${GLASS} border-l-[color:var(--accent2)] border-l-8 p-7 flex flex-col`}>
           <div className="flex items-center gap-4 mb-5 shrink-0">
             <img src="\DITIB-Logo.svg.png" alt="Moschee Logo" className="h-12 w-auto object-contain" />
-            <div className="min-w-0">
-              <h1 className="text-5xl font-medium uppercase tracking-tight leading-none truncate">{config.name}</h1>
-              <span className="text-2xl text-[color:var(--accent2)] font-bold">{now.format("dddd, DD. MMMM")}</span>
+            <div className="min-w-0 flex-1">
+              <h1
+                className="font-medium uppercase tracking-tight max-w-full whitespace-normal"
+                style={fittedMosqueTitleStyle}
+              >
+                {config.name}
+              </h1>
+              <span className="text-3xl text-[color:var(--accent2)] font-bold leading-tight">{now.format("dddd, DD. MMMM")}</span>
             </div>
           </div>
 
