@@ -1308,7 +1308,7 @@ export default function PrayerTVBeautiful() {
 
       {showCreatorBadge && <CreatorBadge />}
 
-      <div className="absolute bottom-4 right-4 z-50 opacity-30 hover:opacity-100 transition-opacity">
+      <div className="absolute bottom-4 right-4 z-50 opacity-0 hover:opacity-100 transition-opacity">
         <Sheet>
           <SheetTrigger asChild><Button size="icon" variant="ghost"><Settings className="h-4 w-4" /></Button></SheetTrigger>
           <SheetContent className="bg-slate-950 text-white border-white/10 overflow-y-auto">
