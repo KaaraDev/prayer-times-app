@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useId, useMemo, useRef, useState } from "react";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
@@ -70,20 +70,181 @@ const getMoonPhaseName = (phase) => {
   return MOON_PHASE_NAMES[idx];
 };
 
-// Realistische Mond-Darstellung als SVG, die die echte aktuelle Phase zeigt
-function MoonPhase({ size = 140, date = new Date() }) {
-  const phase = useMemo(() => getMoonPhase(date), [date]);
-
-  const R = 48, cx = 50, cy = 50;
+// Geometrie der Mondphase: liefert SVG-Pfade für die beleuchtete und die unbeleuchtete Fläche
+const moonGeometry = (phase, R, cx, cy) => {
   const f = (1 - Math.cos(phase * 2 * Math.PI)) / 2; // beleuchteter Anteil 0..1
   const rx = R * Math.abs(1 - 2 * f);                // horizontale Halbachse des Terminators
   const top = `${cx} ${cy - R}`;
   const bot = `${cx} ${cy + R}`;
   const waxing = phase <= 0.5;                        // zunehmend = rechts beleuchtet (Nordhalbkugel)
-  const limbSweep = waxing ? 0 : 1;                   // dunkler Rand auf der unbeleuchteten Seite
-  const termSweep = waxing ? (f <= 0.5 ? 0 : 1) : (f <= 0.5 ? 1 : 0);
-  // Pfad der unbeleuchteten (Schatten-)Fläche
-  const shadow = `M ${top} A ${R} ${R} 0 0 ${limbSweep} ${bot} A ${rx} ${R} 0 0 ${termSweep} ${top} Z`;
+  const term = waxing ? (f <= 0.5 ? 0 : 1) : (f <= 0.5 ? 1 : 0);
+  const shadow = `M ${top} A ${R} ${R} 0 0 ${waxing ? 0 : 1} ${bot} A ${rx} ${R} 0 0 ${term} ${top} Z`;
+  const lit = `M ${top} A ${R} ${R} 0 0 ${waxing ? 1 : 0} ${bot} A ${rx} ${R} 0 0 ${term} ${top} Z`;
+  return { f, rx, waxing, shadow, lit };
+};
+
+// Auswählbare Mond-Designs
+const MOON_DESIGNS = [
+  { id: "classic", label: "Klassisch" },
+  { id: "gold",    label: "Gold" },
+  { id: "neon",    label: "Neon" },
+  { id: "cosmic",  label: "Kosmos" },
+  { id: "minimal", label: "Minimal" },
+];
+
+const MOON_GLOW = {
+  classic: "rgba(226,232,240,0.45)",
+  gold:    "rgba(245,200,90,0.55)",
+  neon:    "rgba(16,185,129,0.55)",
+  cosmic:  "rgba(150,130,255,0.50)",
+  minimal: "rgba(226,232,240,0.30)",
+};
+
+// Animierte Mond-Darstellung, die die echte aktuelle Phase im gewählten Design zeigt
+function MoonPhase({ size = 140, date = new Date(), variant = "classic" }) {
+  const phase = useMemo(() => getMoonPhase(date), [date]);
+  const uid = useId().replace(/:/g, "");
+  const cx = 50, cy = 50;
+  const R = variant === "cosmic" ? 32 : variant === "gold" ? 46 : 48;
+  const geo = moonGeometry(phase, R, cx, cy);
+
+  const renderMoon = () => {
+    switch (variant) {
+      case "gold":
+        return (
+          <>
+            <defs>
+              <radialGradient id={`${uid}-lit`} cx="36%" cy="30%" r="85%">
+                <stop offset="0%" stopColor="#fff7da" />
+                <stop offset="50%" stopColor="#f2cf72" />
+                <stop offset="100%" stopColor="#b9821e" />
+              </radialGradient>
+              <clipPath id={`${uid}-clip`}><circle cx={cx} cy={cy} r={R} /></clipPath>
+              <filter id={`${uid}-blur`} x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="1.1" /></filter>
+            </defs>
+            <circle cx={cx} cy={cy} r={R + 2.5} fill="none" stroke="#f5d77e" strokeWidth="0.5" opacity="0.5" />
+            <g clipPath={`url(#${uid}-clip)`}>
+              <circle cx={cx} cy={cy} r={R} fill={`url(#${uid}-lit)`} />
+              <g fill="#c79428" opacity="0.45">
+                <circle cx="40" cy="36" r="5" />
+                <circle cx="60" cy="46" r="4" />
+                <circle cx="47" cy="60" r="5.5" />
+                <circle cx="64" cy="64" r="3" />
+                <circle cx="34" cy="52" r="2.6" />
+              </g>
+              <path d={geo.shadow} fill="#160f04" opacity="0.94" filter={`url(#${uid}-blur)`} />
+            </g>
+            <circle cx={cx} cy={cy} r={R} fill="none" stroke="rgba(255,230,160,0.35)" strokeWidth="0.7" />
+          </>
+        );
+      case "neon":
+        return (
+          <>
+            <defs>
+              <linearGradient id={`${uid}-lit`} x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stopColor="#5eead4" />
+                <stop offset="100%" stopColor="#10b981" />
+              </linearGradient>
+              <filter id={`${uid}-glow`} x="-50%" y="-50%" width="200%" height="200%">
+                <feGaussianBlur stdDeviation="2" result="b" />
+                <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
+              </filter>
+            </defs>
+            <circle cx={cx} cy={cy} r={R} fill="rgba(255,255,255,0.04)" stroke="rgba(94,234,212,0.25)" strokeWidth="0.8" />
+            <path d={geo.lit} fill={`url(#${uid}-lit)`} opacity="0.9" filter={`url(#${uid}-glow)`} />
+            <path d={geo.lit} fill="none" stroke="#ccfbf1" strokeWidth="0.8" opacity="0.8" />
+          </>
+        );
+      case "cosmic":
+        return (
+          <>
+            <defs>
+              <radialGradient id={`${uid}-neb`} cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stopColor="rgba(150,130,255,0)" />
+                <stop offset="70%" stopColor="rgba(120,100,230,0.12)" />
+                <stop offset="100%" stopColor="rgba(80,60,160,0)" />
+              </radialGradient>
+              <radialGradient id={`${uid}-lit`} cx="40%" cy="34%" r="80%">
+                <stop offset="0%" stopColor="#f8fafc" />
+                <stop offset="70%" stopColor="#cbd5e1" />
+                <stop offset="100%" stopColor="#94a3b8" />
+              </radialGradient>
+              <clipPath id={`${uid}-clip`}><circle cx={cx} cy={cy} r={R} /></clipPath>
+              <filter id={`${uid}-blur`}><feGaussianBlur stdDeviation="0.8" /></filter>
+            </defs>
+            <circle cx={cx} cy={cy} r="48" fill={`url(#${uid}-neb)`} />
+            {[[18, 20, 1.1, 0], [82, 26, 0.9, 0.6], [24, 78, 1.0, 1.2], [80, 74, 1.2, 0.3], [50, 11, 0.8, 0.9], [13, 50, 0.7, 1.5], [88, 52, 0.9, 0.4]].map(([x, y, r, d], i) => (
+              <motion.circle
+                key={i}
+                cx={x}
+                cy={y}
+                r={r}
+                fill="#ffffff"
+                animate={{ opacity: [0.2, 1, 0.2] }}
+                transition={{ duration: 2.4, repeat: Infinity, delay: d, ease: "easeInOut" }}
+              />
+            ))}
+            <g clipPath={`url(#${uid}-clip)`}>
+              <circle cx={cx} cy={cy} r={R} fill={`url(#${uid}-lit)`} />
+              <g fill="#94a3b8" opacity="0.5">
+                <circle cx="44" cy="44" r="3.5" />
+                <circle cx="58" cy="52" r="2.6" />
+                <circle cx="48" cy="58" r="4" />
+                <circle cx="40" cy="52" r="1.8" />
+              </g>
+              <path d={geo.shadow} fill="#0a0a18" opacity="0.96" filter={`url(#${uid}-blur)`} />
+            </g>
+            <circle cx={cx} cy={cy} r={R} fill="none" stroke="rgba(203,213,225,0.2)" strokeWidth="0.6" />
+          </>
+        );
+      case "minimal":
+        return (
+          <>
+            <defs>
+              <linearGradient id={`${uid}-lit`} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#ffffff" />
+                <stop offset="100%" stopColor="#cbd5e1" />
+              </linearGradient>
+            </defs>
+            <circle cx={cx} cy={cy} r={R} fill="none" stroke="rgba(255,255,255,0.18)" strokeWidth="1" />
+            <path d={geo.lit} fill={`url(#${uid}-lit)`} opacity="0.95" />
+          </>
+        );
+      default: // classic
+        return (
+          <>
+            <defs>
+              <radialGradient id={`${uid}-lit`} cx="38%" cy="32%" r="80%">
+                <stop offset="0%" stopColor="#fdfcf3" />
+                <stop offset="65%" stopColor="#e7e4d5" />
+                <stop offset="100%" stopColor="#b6b3a4" />
+              </radialGradient>
+              <clipPath id={`${uid}-clip`}><circle cx={cx} cy={cy} r={R} /></clipPath>
+              <filter id={`${uid}-blur`} x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="0.9" /></filter>
+            </defs>
+            <g clipPath={`url(#${uid}-clip)`}>
+              <circle cx={cx} cy={cy} r={R} fill={`url(#${uid}-lit)`} />
+              <g fill="#a6a392" opacity="0.55">
+                <circle cx="38" cy="34" r="6" />
+                <circle cx="60" cy="44" r="4.6" />
+                <circle cx="46" cy="61" r="7" />
+                <circle cx="65" cy="66" r="3.4" />
+                <circle cx="32" cy="52" r="3" />
+                <circle cx="55" cy="27" r="2.4" />
+                <circle cx="70" cy="54" r="2.2" />
+              </g>
+              <g fill="#cfccbb" opacity="0.45">
+                <circle cx="40" cy="36" r="2.6" />
+                <circle cx="48" cy="63" r="3.2" />
+                <circle cx="62" cy="46" r="2" />
+              </g>
+              <path d={geo.shadow} fill="#070b18" opacity="0.97" filter={`url(#${uid}-blur)`} />
+            </g>
+            <circle cx={cx} cy={cy} r={R} fill="none" stroke="rgba(255,255,255,0.14)" strokeWidth="0.7" />
+          </>
+        );
+    }
+  };
 
   return (
     <motion.div
@@ -92,57 +253,14 @@ function MoonPhase({ size = 140, date = new Date() }) {
       style={{ width: size, height: size }}
       className="relative shrink-0"
     >
-      <svg
-        viewBox="0 0 100 100"
-        width={size}
-        height={size}
-        className="drop-shadow-[0_0_28px_rgba(226,232,240,0.35)]"
-      >
-        <defs>
-          <radialGradient id="moonLit" cx="38%" cy="32%" r="80%">
-            <stop offset="0%" stopColor="#fdfcf3" />
-            <stop offset="65%" stopColor="#e7e4d5" />
-            <stop offset="100%" stopColor="#b6b3a4" />
-          </radialGradient>
-          <clipPath id="moonClip">
-            <circle cx={cx} cy={cy} r={R} />
-          </clipPath>
-          <filter id="termBlur" x="-20%" y="-20%" width="140%" height="140%">
-            <feGaussianBlur stdDeviation="0.9" />
-          </filter>
-        </defs>
-
-        <g clipPath="url(#moonClip)">
-          {/* beleuchtete Oberfläche */}
-          <circle cx={cx} cy={cy} r={R} fill="url(#moonLit)" />
-          {/* Krater für Realismus */}
-          <g fill="#a6a392" opacity="0.55">
-            <circle cx="38" cy="34" r="6" />
-            <circle cx="60" cy="44" r="4.6" />
-            <circle cx="46" cy="61" r="7" />
-            <circle cx="65" cy="66" r="3.4" />
-            <circle cx="32" cy="52" r="3" />
-            <circle cx="55" cy="27" r="2.4" />
-            <circle cx="70" cy="54" r="2.2" />
-          </g>
-          <g fill="#cfccbb" opacity="0.45">
-            <circle cx="40" cy="36" r="2.6" />
-            <circle cx="48" cy="63" r="3.2" />
-            <circle cx="62" cy="46" r="2" />
-          </g>
-          {/* unbeleuchteter Teil (echte Phase) */}
-          <path d={shadow} fill="#070b18" opacity="0.97" filter="url(#termBlur)" />
-        </g>
-
-        {/* feiner Rand */}
-        <circle
-          cx={cx}
-          cy={cy}
-          r={R}
-          fill="none"
-          stroke="rgba(255,255,255,0.14)"
-          strokeWidth="0.7"
-        />
+      <motion.div
+        className="absolute inset-0 rounded-full pointer-events-none"
+        style={{ background: `radial-gradient(circle, ${MOON_GLOW[variant] || MOON_GLOW.classic} 0%, transparent 70%)` }}
+        animate={{ opacity: [0.4, 0.7, 0.4], scale: [0.92, 1.06, 0.92] }}
+        transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+      />
+      <svg viewBox="0 0 100 100" width={size} height={size} className="relative">
+        {renderMoon()}
       </svg>
     </motion.div>
   );
@@ -171,7 +289,15 @@ export default function PrayerTVBeautiful() {
   const [calendar, setCalendar] = useState(null);
   const [now, setNow] = useState(dayjs().tz(config.tz));
   const [randomAyah, setRandomAyah] = useState({ text: "Lade kurzen Vers...", ref: "" });
+  const [moonDesign, setMoonDesign] = useState(() => {
+    const saved = typeof window !== "undefined" ? localStorage.getItem("prayer_moon_design") : null;
+    return saved && MOON_DESIGNS.some((d) => d.id === saved) ? saved : "classic";
+  });
   const lastFetchRef = useRef(0);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") localStorage.setItem("prayer_moon_design", moonDesign);
+  }, [moonDesign]);
 
   const today = useMemo(() => now.startOf("day"), [now]);
 
@@ -342,7 +468,7 @@ export default function PrayerTVBeautiful() {
         <div className="flex flex-col gap-2 max-w-[75%]">
           <div className="flex items-center gap-6">
             <img
-              src="public\DITIB-Logo.svg.png"
+              src="\DITIB-Logo.svg.png"
               alt="Moschee Logo"
               className="h-16 w-auto object-contain"
             />
@@ -394,7 +520,7 @@ export default function PrayerTVBeautiful() {
               </div>
 
               <div className="w-[42%] flex items-center justify-center gap-7 bg-white/5 px-10 py-6 rounded-[35px] border border-white/5 shadow-xl">
-                <MoonPhase size={140} date={now.toDate()} />
+                <MoonPhase size={140} date={now.toDate()} variant={moonDesign} />
                 <div className="flex flex-col text-emerald-400 min-w-0">
                   <span className="text-xl uppercase tracking-[0.2em] text-slate-400 mb-2">
                     {getMoonPhaseName(getMoonPhase(now.toDate()))}
@@ -567,6 +693,27 @@ export default function PrayerTVBeautiful() {
           <SheetContent className="bg-slate-950 text-white border-white/10">
             <SheetHeader><SheetTitle>Konfiguration</SheetTitle></SheetHeader>
             <div className="mt-4"><Label>Moschee Name</Label><Input value={config.name} onChange={(e)=>setConfig({...config, name:e.target.value})} className="bg-white/5 mt-2"/></div>
+
+            <div className="mt-8">
+              <Label>Mond-Design</Label>
+              <div className="grid grid-cols-3 gap-3 mt-3">
+                {MOON_DESIGNS.map((d) => (
+                  <button
+                    key={d.id}
+                    type="button"
+                    onClick={() => setMoonDesign(d.id)}
+                    className={`flex flex-col items-center gap-2 rounded-2xl border p-3 transition ${
+                      moonDesign === d.id
+                        ? "border-emerald-400 bg-emerald-500/10"
+                        : "border-white/10 bg-white/5 hover:bg-white/10"
+                    }`}
+                  >
+                    <MoonPhase size={64} date={now.toDate()} variant={d.id} />
+                    <span className="text-xs text-slate-300">{d.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
           </SheetContent>
         </Sheet>
       </div>
