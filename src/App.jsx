@@ -16,7 +16,7 @@ import { Progress } from "@/components/ui/progress";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Settings, Maximize2, MapPin, Moon, Clock, Quote } from "lucide-react";
+import { Settings, Maximize2, MapPin, Clock, Quote } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 dayjs.extend(utc);
@@ -43,6 +43,110 @@ const toDateWithTime = (baseDate, hhmm, tz = DEFAULT_TZ) => {
   return dayjs.tz(`${dateStr} ${hhmm}`, "YYYY-MM-DD HH:mm", tz);
 };
 const fmt = (d, tz = DEFAULT_TZ) => (d ? dayjs(d).tz(tz).format("HH:mm") : "--:--");
+
+// Mondphase (0 = Neumond, 0.5 = Vollmond, 1 = Neumond) für ein beliebiges Datum
+const getMoonPhase = (date) => {
+  const SYNODIC = 29.53058867; // Länge eines Mondzyklus in Tagen
+  const knownNewMoon = Date.UTC(2000, 0, 6, 18, 14); // bekannter Neumond
+  let p = (((date.getTime() - knownNewMoon) / 86400000) % SYNODIC) / SYNODIC;
+  if (p < 0) p += 1;
+  return p;
+};
+
+const MOON_PHASE_NAMES = [
+  "Neumond",
+  "Zunehmende Sichel",
+  "Erstes Viertel",
+  "Zunehmender Mond",
+  "Vollmond",
+  "Abnehmender Mond",
+  "Letztes Viertel",
+  "Abnehmende Sichel",
+];
+
+const getMoonPhaseName = (phase) => {
+  // 8 Phasen, zentriert um die Eckpunkte
+  const idx = Math.round(phase * 8) % 8;
+  return MOON_PHASE_NAMES[idx];
+};
+
+// Realistische Mond-Darstellung als SVG, die die echte aktuelle Phase zeigt
+function MoonPhase({ size = 140, date = new Date() }) {
+  const phase = useMemo(() => getMoonPhase(date), [date]);
+
+  const R = 48, cx = 50, cy = 50;
+  const f = (1 - Math.cos(phase * 2 * Math.PI)) / 2; // beleuchteter Anteil 0..1
+  const rx = R * Math.abs(1 - 2 * f);                // horizontale Halbachse des Terminators
+  const top = `${cx} ${cy - R}`;
+  const bot = `${cx} ${cy + R}`;
+  const waxing = phase <= 0.5;                        // zunehmend = rechts beleuchtet (Nordhalbkugel)
+  const limbSweep = waxing ? 0 : 1;                   // dunkler Rand auf der unbeleuchteten Seite
+  const termSweep = waxing ? (f <= 0.5 ? 0 : 1) : (f <= 0.5 ? 1 : 0);
+  // Pfad der unbeleuchteten (Schatten-)Fläche
+  const shadow = `M ${top} A ${R} ${R} 0 0 ${limbSweep} ${bot} A ${rx} ${R} 0 0 ${termSweep} ${top} Z`;
+
+  return (
+    <motion.div
+      animate={{ y: [0, -6, 0] }}
+      transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+      style={{ width: size, height: size }}
+      className="relative shrink-0"
+    >
+      <svg
+        viewBox="0 0 100 100"
+        width={size}
+        height={size}
+        className="drop-shadow-[0_0_28px_rgba(226,232,240,0.35)]"
+      >
+        <defs>
+          <radialGradient id="moonLit" cx="38%" cy="32%" r="80%">
+            <stop offset="0%" stopColor="#fdfcf3" />
+            <stop offset="65%" stopColor="#e7e4d5" />
+            <stop offset="100%" stopColor="#b6b3a4" />
+          </radialGradient>
+          <clipPath id="moonClip">
+            <circle cx={cx} cy={cy} r={R} />
+          </clipPath>
+          <filter id="termBlur" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="0.9" />
+          </filter>
+        </defs>
+
+        <g clipPath="url(#moonClip)">
+          {/* beleuchtete Oberfläche */}
+          <circle cx={cx} cy={cy} r={R} fill="url(#moonLit)" />
+          {/* Krater für Realismus */}
+          <g fill="#a6a392" opacity="0.55">
+            <circle cx="38" cy="34" r="6" />
+            <circle cx="60" cy="44" r="4.6" />
+            <circle cx="46" cy="61" r="7" />
+            <circle cx="65" cy="66" r="3.4" />
+            <circle cx="32" cy="52" r="3" />
+            <circle cx="55" cy="27" r="2.4" />
+            <circle cx="70" cy="54" r="2.2" />
+          </g>
+          <g fill="#cfccbb" opacity="0.45">
+            <circle cx="40" cy="36" r="2.6" />
+            <circle cx="48" cy="63" r="3.2" />
+            <circle cx="62" cy="46" r="2" />
+          </g>
+          {/* unbeleuchteter Teil (echte Phase) */}
+          <path d={shadow} fill="#070b18" opacity="0.97" filter="url(#termBlur)" />
+        </g>
+
+        {/* feiner Rand */}
+        <circle
+          cx={cx}
+          cy={cy}
+          r={R}
+          fill="none"
+          stroke="rgba(255,255,255,0.14)"
+          strokeWidth="0.7"
+        />
+      </svg>
+    </motion.div>
+  );
+}
 
 export default function PrayerTVBeautiful() {
   const [config, setConfig] = useState(() => {
@@ -238,7 +342,7 @@ export default function PrayerTVBeautiful() {
         <div className="flex flex-col gap-2 max-w-[75%]">
           <div className="flex items-center gap-6">
             <img
-              src="dist\DITIB-Logo.svg.png"
+              src="public\DITIB-Logo.svg.png"
               alt="Moschee Logo"
               className="h-16 w-auto object-contain"
             />
@@ -289,11 +393,16 @@ export default function PrayerTVBeautiful() {
                 </div>
               </div>
 
-              <div className="w-[42%] flex items-center justify-center gap-4 text-4xl font-medium text-emerald-400 bg-white/5 px-10 py-6 rounded-[35px] border border-white/5 shadow-xl">
-                <Moon className="h-10 w-10 shrink-0" />
-                <span className="text-center leading-tight">
-                  {hijriText}
-                </span>
+              <div className="w-[42%] flex items-center justify-center gap-7 bg-white/5 px-10 py-6 rounded-[35px] border border-white/5 shadow-xl">
+                <MoonPhase size={140} date={now.toDate()} />
+                <div className="flex flex-col text-emerald-400 min-w-0">
+                  <span className="text-xl uppercase tracking-[0.2em] text-slate-400 mb-2">
+                    {getMoonPhaseName(getMoonPhase(now.toDate()))}
+                  </span>
+                  <span className="text-4xl font-medium leading-tight">
+                    {hijriText}
+                  </span>
+                </div>
               </div>
             </div>
           </CardContent>
