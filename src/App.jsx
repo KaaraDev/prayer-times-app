@@ -276,6 +276,70 @@ const LAYOUTS = [
 // Umriss einer Moschee-Nische (Mihrab-Bogen)
 const ARCH_PATH = "M 8 128 L 8 52 Q 10 12 50 5 Q 90 12 92 52 L 92 128 Z";
 
+// Religiöse Tage (Bayrame mit Gebetszeiten + Kandil-/Sondertage als Ankündigung).
+// WICHTIG: Daten jährlich mit dem offiziellen DITIB/Diyanet-Kalender abgleichen!
+// type "eid" zeigt Sabah-/Bayram-Gebetszeit, type "day" zeigt nur einen Countdown.
+// window = ab wie vielen Tagen vorher angekündigt wird.
+const DEFAULT_RELIGIOUS_DAYS = [
+  { id: "regaib",   type: "day", date: "2026-01-15", title: "Regaib Kandili", window: 6 },
+  { id: "mirac",    type: "day", date: "2026-02-15", title: "Miraç Kandili", window: 6 },
+  { id: "berat",    type: "day", date: "2026-03-03", title: "Berat Kandili", window: 6 },
+  { id: "ramazan",  type: "day", date: "2026-02-18", title: "Ramazan-ı Şerif\nRamadan-Beginn", window: 8 },
+  { id: "kadir",    type: "day", date: "2026-03-16", title: "Kadir Gecesi\nLailat al-Qadr", window: 6 },
+  { id: "eid-fitr", type: "eid", date: "2026-03-20", title: "Ramazan Bayramı\nEid al-Fitr", sabahTime: "05:35", prayerTime: "07:00", window: 8 },
+  { id: "eid-adha", type: "eid", date: "2026-05-27", title: "Kurban Bayramı\nEid al-Adha", sabahTime: "04:30", prayerTime: "06:30", window: 8 },
+  { id: "hicri",    type: "day", date: "2026-06-26", title: "Hicri Yılbaşı\nIslam. Neujahr 1448", window: 6 },
+  { id: "asure",    type: "day", date: "2026-07-05", title: "Aşure Günü", window: 6 },
+  { id: "mevlid",   type: "day", date: "2026-08-25", title: "Mevlid Kandili", window: 6 },
+];
+
+// Gemeinsame Darstellung eines religiösen Tages (Bayram mit Zeiten oder Ankündigung)
+function SpecialDayPanel({ specialDay, config, variant = "panel" }) {
+  const { type, title, daysLeft, isToday, sabahDateTime, prayerDateTime, date } = specialDay;
+  const countdown = isToday ? "Heute" : `Noch ${daysLeft} ${daysLeft === 1 ? "Tag" : "Tage"}`;
+  const dateText = date ? dayjs(date).format("DD.MM.YYYY") : "";
+
+  if (variant === "band") {
+    return (
+      <>
+        <span className="text-4xl font-medium text-[color:var(--accent2)] uppercase tracking-[0.25em]">{title.replace(/\n/g, " · ")}</span>
+        {type === "eid" ? (
+          <>
+            <span className="text-4xl">Sabah <b className="tabular-nums">{fmt(sabahDateTime, config.tz)}</b></span>
+            <span className="text-4xl text-[color:var(--accent)]">Bayram <b className="tabular-nums">{fmt(prayerDateTime, config.tz)}</b></span>
+          </>
+        ) : (
+          <span className="text-4xl text-[color:var(--accent)]">{countdown}</span>
+        )}
+        <span className="text-4xl text-[color:var(--ink-soft)] tabular-nums">{dateText}</span>
+      </>
+    );
+  }
+
+  const lg = variant === "panelLg";
+  return (
+    <>
+      <p className={`whitespace-pre-line font-medium text-[color:var(--accent2)] uppercase tracking-[0.25em] ${lg ? "text-5xl mb-7" : "text-4xl mb-5"}`}>{title}</p>
+      <h4 className={`font-medium leading-tight text-[color:var(--ink)] ${lg ? "text-5xl mb-10" : "text-4xl mb-7"}`}>
+        {type === "eid" ? (isToday ? "Heute ist Bayram" : `${countdown} bis Bayram / Eid`) : countdown}
+      </h4>
+      {type === "eid" && (
+        <div className="w-full grid grid-cols-2 gap-6">
+          <div className={`bg-[var(--surface-2)] rounded-[32px] border border-[color:var(--surface-border)] flex flex-col items-center ${lg ? "p-10" : "p-6"}`}>
+            <p className={`text-[color:var(--ink-soft)] uppercase tracking-widest ${lg ? "text-3xl mb-4" : "text-2xl mb-3"}`}>Sabah</p>
+            <p className={`font-medium leading-none tabular-nums text-[color:var(--ink)] ${lg ? "text-[7rem]" : "text-7xl"}`}>{fmt(sabahDateTime, config.tz)}</p>
+          </div>
+          <div className={`bg-[var(--accent2-soft)] rounded-[32px] border border-[color:var(--accent2-soft)] flex flex-col items-center ${lg ? "p-10" : "p-6"}`}>
+            <p className={`text-[color:var(--accent2)] uppercase tracking-widest ${lg ? "text-3xl mb-4" : "text-2xl mb-3"}`}>Bayram namazı</p>
+            <p className={`font-medium leading-none tabular-nums text-[color:var(--accent-light)] ${lg ? "text-[7rem]" : "text-7xl"}`}>{fmt(prayerDateTime, config.tz)}</p>
+          </div>
+        </div>
+      )}
+      <p className={`text-[color:var(--ink-soft)] ${lg ? "mt-8 text-4xl" : "mt-6 text-3xl"}`}>{dateText}</p>
+    </>
+  );
+}
+
 // Animierte Mond-Darstellung, die die echte aktuelle Phase im gewählten Design zeigt
 function MoonPhase({ size = 140, date = new Date(), variant = "classic" }) {
   const phase = useMemo(() => getMoonPhase(date), [date]);
@@ -477,7 +541,21 @@ export default function PrayerTVBeautiful() {
     const saved = typeof window !== "undefined" ? localStorage.getItem("prayer_layout") : null;
     return saved && LAYOUTS.some((l) => l.id === saved) ? saved : "classic";
   });
+  const [religiousDays, setReligiousDays] = useState(() => {
+    try {
+      const saved = typeof window !== "undefined" ? localStorage.getItem("prayer_religious_days") : null;
+      const parsed = saved ? JSON.parse(saved) : null;
+      if (Array.isArray(parsed) && parsed.length) return parsed;
+    } catch { /* ungültige Daten ignorieren */ }
+    return DEFAULT_RELIGIOUS_DAYS;
+  });
+  const [testDayId, setTestDayId] = useState(() => {
+    return (typeof window !== "undefined" ? localStorage.getItem("prayer_test_day") : null) || null;
+  });
   const lastFetchRef = useRef(0);
+
+  const updateDay = (id, patch) =>
+    setReligiousDays((prev) => prev.map((d) => (d.id === id ? { ...d, ...patch } : d)));
 
   const theme = useMemo(
     () => UI_THEMES.find((t) => t.id === uiTheme) || UI_THEMES[0],
@@ -496,6 +574,16 @@ export default function PrayerTVBeautiful() {
     if (typeof window !== "undefined") localStorage.setItem("prayer_layout", layout);
   }, [layout]);
 
+  useEffect(() => {
+    if (typeof window !== "undefined") localStorage.setItem("prayer_religious_days", JSON.stringify(religiousDays));
+  }, [religiousDays]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (testDayId) localStorage.setItem("prayer_test_day", testDayId);
+    else localStorage.removeItem("prayer_test_day");
+  }, [testDayId]);
+
   const today = useMemo(() => now.startOf("day"), [now]);
 
   const hijriText = useMemo(() => {
@@ -503,38 +591,41 @@ export default function PrayerTVBeautiful() {
     return calendar?.[key]?.hijri || "--";
   }, [calendar, today]);
 
-  const eidInfo = useMemo(() => {
-    const eidDateStr = config?.eidAlFitr?.date;
-    const sabahTimeStr = config?.eidAlFitr?.sabahTime;
-    const eidPrayerTimeStr = config?.eidAlFitr?.prayerTime;
+  const specialDay = useMemo(() => {
+    const inactive = {
+      active: false, type: null, title: "", date: null,
+      daysLeft: null, isToday: false, sabahDateTime: null, prayerDateTime: null,
+    };
 
-    if (!eidDateStr || !sabahTimeStr || !eidPrayerTimeStr) {
-      return {
-        active: false,
-        isEidDay: false,
-        daysLeft: null,
-        sabahDateTime: null,
-        eidPrayerDateTime: null,
-      };
+    const build = (ev, diff, baseDay) => ({
+      active: true,
+      type: ev.type,
+      title: ev.title,
+      date: ev.date,
+      daysLeft: diff,
+      isToday: diff === 0,
+      sabahDateTime: ev.sabahTime ? toDateWithTime(baseDay, ev.sabahTime).toDate() : null,
+      prayerDateTime: ev.prayerTime ? toDateWithTime(baseDay, ev.prayerTime).toDate() : null,
+    });
+
+    // Test-Modus: gewählten Tag sofort als "heute" aktiv anzeigen
+    if (testDayId) {
+      const ev = religiousDays.find((d) => d.id === testDayId);
+      if (ev) return build(ev, 0, today);
     }
 
-    const eidDay = dayjs.tz(eidDateStr, config.tz).startOf("day");
-    const diffDays = eidDay.diff(today, "day");
-
-    const active = diffDays >= 0 && diffDays <= 8;
-    const isEidDay = diffDays === 0;
-
-    const sabahDateTime = toDateWithTime(eidDay, sabahTimeStr).toDate();
-    const eidPrayerDateTime = toDateWithTime(eidDay, eidPrayerTimeStr).toDate();
-
-    return {
-      active,
-      isEidDay,
-      daysLeft: diffDays,
-      sabahDateTime,
-      eidPrayerDateTime,
-    };
-  }, [config, today]);
+    let best = null;
+    for (const ev of religiousDays) {
+      if (!ev.date) continue;
+      const day = dayjs.tz(ev.date, config.tz).startOf("day");
+      const diff = day.diff(today, "day");
+      const win = ev.window ?? 8;
+      if (diff < 0 || diff > win) continue;          // außerhalb des Ankündigungsfensters
+      if (best && diff >= best.daysLeft) continue;   // einen näheren Tag bevorzugen
+      best = build(ev, diff, day);
+    }
+    return best || inactive;
+  }, [religiousDays, testDayId, config.tz, today]);
 
   // Dynamische Berechnung der Schriftgröße basierend auf der Zeichenanzahl
   const dynamicFontSize = useMemo(() => {
@@ -658,7 +749,7 @@ export default function PrayerTVBeautiful() {
   const glass = GLASS;
 
   const view = {
-    config, now, hijriText, eidInfo, dynamicFontSize, randomAyah,
+    config, now, hijriText, specialDay, dynamicFontSize, randomAyah,
     times, upcoming, currentPrayerKey, remaining, progressPct, moonDesign,
   };
 
@@ -749,7 +840,7 @@ export default function PrayerTVBeautiful() {
 
         {/* RECHTS: AKTUELL / ZITAT */}
         <Card className={`col-span-4 rounded-[55px] ${glass} p-12 flex flex-col justify-between border-t-[color:var(--accent2)] border-t-8 overflow-hidden h-full`}>
-          {!eidInfo.active && (
+          {!specialDay.active && (
             <div className="h-[25%] shrink-0">
               <p className="text-[color:var(--accent2)] text-2xl font-medium tracking-[0.3em] uppercase mb-2">Aktuell</p>
               <h3 className="text-5xl font-medium leading-tight italic truncate">
@@ -763,54 +854,16 @@ export default function PrayerTVBeautiful() {
             </div>
           )}
 
-            <div className={`bg-[var(--surface-2)] rounded-[45px] p-6 text-center border border-[color:var(--surface-border)] shadow-inner flex flex-col justify-center items-center overflow-hidden ${eidInfo.active ? "h-full" : "h-[72%]"}`}>            <AnimatePresence mode="wait">
-              {eidInfo.active ? (
+            <div className={`bg-[var(--surface-2)] rounded-[45px] p-6 text-center border border-[color:var(--surface-border)] shadow-inner flex flex-col justify-center items-center overflow-hidden ${specialDay.active ? "h-full" : "h-[72%]"}`}>            <AnimatePresence mode="wait">
+              {specialDay.active ? (
                 <motion.div
-                  key="eid-info"
+                  key="special"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   className="w-full h-full flex flex-col items-center justify-center text-center px-4"
                 >
-                  <p className="whitespace-pre-line text-3xl font-medium text-[color:var(--accent2)] uppercase tracking-[0.25em] mb-6">
-                    {config.eidAlFitr?.title || "Eid al-Fitr"}
-                  </p>
-
-                  <h4 className="text-3xl font-medium leading-tight text-[color:var(--ink)] mb-10">
-                    {eidInfo.isEidDay
-                      ? "Heute ist Eid"
-                      : `Noch ${eidInfo.daysLeft} ${eidInfo.daysLeft === 1 ? "Tag" : "Tage"} bis Bayram / Eid`}
-                  </h4>
-
-                  <div className="w-full grid grid-cols-2 gap-8">
-                    <div className="bg-[var(--surface-2)] rounded-[32px] border border-[color:var(--surface-border)] p-10 flex flex-col items-center">
-                      <p className="text-2xl text-[color:var(--ink-soft)] uppercase tracking-widest mb-4">
-                        Fajr
-                      </p>
-                      <p className="text-[5rem] font-medium leading-none tabular-nums text-[color:var(--ink)]">
-                        {fmt(eidInfo.sabahDateTime, config.tz)}
-                      </p>
-                      <p className="mt-4 text-2xl text-[color:var(--ink-soft)]">
-                        Sabah
-                      </p>
-                    </div>
-
-                  <div className="bg-[var(--accent2-soft)] rounded-[32px] border border-[color:var(--accent2-soft)] p-10 flex flex-col items-center">
-                      <p className="text-2xl text-[color:var(--accent2)] uppercase tracking-widest mb-4">
-                        EId-Gebet
-                      </p>
-                      <p className="text-[5rem] font-medium leading-none tabular-nums text-[color:var(--accent-light)]">
-                        {fmt(eidInfo.eidPrayerDateTime, config.tz)}
-                      </p>
-                      <p className="mt-4 text-2xl text-[color:var(--accent2)]">
-                        Bayram namazı
-                      </p>
-                    </div>
-                  </div>
-
-                  <p className="mt-8 text-3xl text-[color:var(--ink-soft)]">
-                    {dayjs(config.eidAlFitr?.date).format("DD.MM.YYYY")}
-                  </p>
+                  <SpecialDayPanel specialDay={specialDay} config={config} variant="panelLg" />
                 </motion.div>
               ) : upcoming.key && config.iqama[upcoming.key] === 0 ? (
                 <motion.div
@@ -905,7 +958,7 @@ export default function PrayerTVBeautiful() {
       <div className="absolute bottom-4 right-4 z-50 opacity-0 hover:opacity-100 transition-opacity">
         <Sheet>
           <SheetTrigger asChild><Button size="icon" variant="ghost"><Settings className="h-4 w-4" /></Button></SheetTrigger>
-          <SheetContent className="bg-slate-950 text-white border-white/10">
+          <SheetContent className="bg-slate-950 text-white border-white/10 overflow-y-auto">
             <SheetHeader><SheetTitle>Konfiguration</SheetTitle></SheetHeader>
             <div className="mt-4"><Label>Moschee Name</Label><Input value={config.name} onChange={(e)=>setConfig({...config, name:e.target.value})} className="bg-white/5 mt-2"/></div>
 
@@ -978,6 +1031,80 @@ export default function PrayerTVBeautiful() {
                 ))}
               </div>
             </div>
+
+            <div className="mt-8 mb-6">
+              <Label>Religiöse Tage</Label>
+              <p className="mt-1 mb-3 text-xs text-slate-400">
+                Datum &amp; Zeiten anpassen. „Test“ zeigt den Tag sofort aktiv an (nur zum Prüfen).
+              </p>
+
+              {testDayId && (
+                <button
+                  type="button"
+                  onClick={() => setTestDayId(null)}
+                  className="mb-3 w-full rounded-lg border border-amber-400/50 bg-amber-500/15 px-3 py-2 text-xs text-amber-200 hover:bg-amber-500/25"
+                >
+                  ⚠ Test-Modus aktiv – beenden
+                </button>
+              )}
+
+              <div className="flex flex-col gap-3">
+                {religiousDays.map((ev) => {
+                  const isTest = testDayId === ev.id;
+                  return (
+                    <div
+                      key={ev.id}
+                      className={`rounded-2xl border p-3 ${isTest ? "border-emerald-400 bg-emerald-500/10" : "border-white/10 bg-white/5"}`}
+                    >
+                      <div className="mb-2 flex items-start justify-between gap-2">
+                        <textarea
+                          value={ev.title}
+                          onChange={(e) => updateDay(ev.id, { title: e.target.value })}
+                          rows={2}
+                          className="flex-1 resize-none bg-transparent text-sm font-medium leading-tight text-white outline-none"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setTestDayId(isTest ? null : ev.id)}
+                          className={`shrink-0 rounded-lg border px-2 py-1 text-xs ${isTest ? "border-emerald-300 bg-emerald-500 text-black" : "border-white/20 text-slate-200 hover:bg-white/10"}`}
+                        >
+                          {isTest ? "Test an" : "Test"}
+                        </button>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <input
+                          type="date"
+                          value={ev.date || ""}
+                          onChange={(e) => updateDay(ev.id, { date: e.target.value })}
+                          style={{ colorScheme: "dark" }}
+                          className="rounded border border-white/10 bg-white/5 px-2 py-1 text-xs text-white"
+                        />
+                        {ev.type === "eid" && (
+                          <>
+                            <span className="text-xs text-slate-400">Sabah</span>
+                            <input
+                              type="time"
+                              value={ev.sabahTime || ""}
+                              onChange={(e) => updateDay(ev.id, { sabahTime: e.target.value })}
+                              style={{ colorScheme: "dark" }}
+                              className="rounded border border-white/10 bg-white/5 px-2 py-1 text-xs text-white"
+                            />
+                            <span className="text-xs text-slate-400">Bayram</span>
+                            <input
+                              type="time"
+                              value={ev.prayerTime || ""}
+                              onChange={(e) => updateDay(ev.id, { prayerTime: e.target.value })}
+                              style={{ colorScheme: "dark" }}
+                              className="rounded border border-white/10 bg-white/5 px-2 py-1 text-xs text-white"
+                            />
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </SheetContent>
         </Sheet>
       </div>
@@ -988,7 +1115,7 @@ export default function PrayerTVBeautiful() {
 // Alternatives Layout: zentrierter Kreis-Countdown + Zeitleiste
 function FocusLayout({ view }) {
   const {
-    config, now, hijriText, eidInfo, dynamicFontSize, randomAyah,
+    config, now, hijriText, specialDay, dynamicFontSize, randomAyah,
     times, upcoming, currentPrayerKey, remaining, progressPct, moonDesign,
   } = view;
 
@@ -1077,26 +1204,9 @@ function FocusLayout({ view }) {
 
           <div className="flex-1 min-h-0 flex flex-col items-center justify-center text-center overflow-hidden">
             <AnimatePresence mode="wait">
-              {eidInfo.active ? (
-                <motion.div key="eid" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="w-full flex flex-col items-center">
-                  <p className="whitespace-pre-line text-2xl font-medium text-[color:var(--accent2)] uppercase tracking-[0.25em] mb-4">
-                    {config.eidAlFitr?.title || "Eid al-Fitr"}
-                  </p>
-                  <h4 className="text-2xl font-medium mb-6">
-                    {eidInfo.isEidDay
-                      ? "Heute ist Eid"
-                      : `Noch ${eidInfo.daysLeft} ${eidInfo.daysLeft === 1 ? "Tag" : "Tage"} bis Bayram / Eid`}
-                  </h4>
-                  <div className="grid grid-cols-2 gap-4 w-full">
-                    <div className="bg-[var(--surface-2)] rounded-3xl border border-[color:var(--surface-border)] p-6">
-                      <p className="text-lg text-[color:var(--ink-soft)] uppercase tracking-widest mb-2">Sabah</p>
-                      <p className="text-5xl font-medium tabular-nums">{fmt(eidInfo.sabahDateTime, config.tz)}</p>
-                    </div>
-                    <div className="bg-[var(--accent2-soft)] rounded-3xl border border-[color:var(--accent2-soft)] p-6">
-                      <p className="text-lg text-[color:var(--accent2)] uppercase tracking-widest mb-2">Eid-Gebet</p>
-                      <p className="text-5xl font-medium tabular-nums text-[color:var(--accent-light)]">{fmt(eidInfo.eidPrayerDateTime, config.tz)}</p>
-                    </div>
-                  </div>
+              {specialDay.active ? (
+                <motion.div key="special" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="w-full flex flex-col items-center text-center">
+                  <SpecialDayPanel specialDay={specialDay} config={config} variant="panel" />
                 </motion.div>
               ) : upcoming.key && config.iqama[upcoming.key] === 0 ? (
                 <motion.div key="ayah" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="w-full flex flex-col items-center" style={{ hyphens: "auto", wordBreak: "break-word" }}>
@@ -1209,7 +1319,7 @@ function AnimatedBackground() {
 // Aurora-Layout: aufwändigstes, am stärksten animiertes Design
 function AuroraLayout({ view }) {
   const {
-    config, now, hijriText, eidInfo, dynamicFontSize, randomAyah,
+    config, now, hijriText, specialDay, dynamicFontSize, randomAyah,
     times, upcoming, currentPrayerKey, remaining, progressPct, moonDesign,
   } = view;
 
@@ -1323,22 +1433,9 @@ function AuroraLayout({ view }) {
 
             <div className="flex-1 min-h-0 flex flex-col items-center justify-center text-center overflow-hidden">
               <AnimatePresence mode="wait">
-                {eidInfo.active ? (
-                  <motion.div key="eid" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="w-full flex flex-col items-center">
-                    <p className="whitespace-pre-line text-2xl font-medium text-[color:var(--accent2)] uppercase tracking-[0.25em] mb-4">{config.eidAlFitr?.title || "Eid al-Fitr"}</p>
-                    <h4 className="text-2xl font-medium mb-6">
-                      {eidInfo.isEidDay ? "Heute ist Eid" : `Noch ${eidInfo.daysLeft} ${eidInfo.daysLeft === 1 ? "Tag" : "Tage"} bis Bayram / Eid`}
-                    </h4>
-                    <div className="grid grid-cols-2 gap-4 w-full">
-                      <div className="bg-[var(--surface-2)] rounded-3xl border border-[color:var(--surface-border)] p-6">
-                        <p className="text-lg text-[color:var(--ink-soft)] uppercase tracking-widest mb-2">Sabah</p>
-                        <p className="text-5xl font-medium tabular-nums">{fmt(eidInfo.sabahDateTime, config.tz)}</p>
-                      </div>
-                      <div className="bg-[var(--accent2-soft)] rounded-3xl border border-[color:var(--accent2-soft)] p-6">
-                        <p className="text-lg text-[color:var(--accent2)] uppercase tracking-widest mb-2">Eid-Gebet</p>
-                        <p className="text-5xl font-medium tabular-nums text-[color:var(--accent-light)]">{fmt(eidInfo.eidPrayerDateTime, config.tz)}</p>
-                      </div>
-                    </div>
+                {specialDay.active ? (
+                  <motion.div key="special" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="w-full flex flex-col items-center text-center">
+                    <SpecialDayPanel specialDay={specialDay} config={config} variant="panel" />
                   </motion.div>
                 ) : upcoming.key && config.iqama[upcoming.key] === 0 ? (
                   <motion.div key="ayah" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="w-full flex flex-col items-center" style={{ hyphens: "auto", wordBreak: "break-word" }}>
@@ -1452,7 +1549,7 @@ function MihrabBackground() {
 // Mihrab-Layout: vertikale Gebetsliste + Moschee-Nische mit wanderndem Licht
 function MihrabLayout({ view }) {
   const {
-    config, now, hijriText, eidInfo, randomAyah,
+    config, now, hijriText, specialDay, randomAyah,
     times, upcoming, currentPrayerKey, remaining, progressPct, moonDesign,
   } = view;
 
@@ -1576,11 +1673,9 @@ function MihrabLayout({ view }) {
           {/* Inhalts-Band */}
           <div className={`shrink-0 rounded-[30px] ${GLASS} px-8 py-5 flex items-center justify-center text-center overflow-hidden`} style={{ minHeight: "19%" }}>
             <AnimatePresence mode="wait">
-              {eidInfo.active ? (
-                <motion.div key="eid" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-wrap items-center justify-center gap-x-10 gap-y-2">
-                  <span className="text-3xl font-medium text-[color:var(--accent2)] uppercase tracking-[0.25em]">{(config.eidAlFitr?.title || "Eid al-Fitr").replace(/\n/g, " · ")}</span>
-                  <span className="text-3xl">Sabah <b className="tabular-nums">{fmt(eidInfo.sabahDateTime, config.tz)}</b></span>
-                  <span className="text-3xl text-[color:var(--accent)]">Eid-Gebet <b className="tabular-nums">{fmt(eidInfo.eidPrayerDateTime, config.tz)}</b></span>
+              {specialDay.active ? (
+                <motion.div key="special" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-wrap items-center justify-center gap-x-10 gap-y-2">
+                  <SpecialDayPanel specialDay={specialDay} config={config} variant="band" />
                 </motion.div>
               ) : upcoming.key && config.iqama[upcoming.key] === 0 ? (
                 <motion.div key="ayah" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col items-center" style={{ hyphens: "auto", wordBreak: "break-word" }}>
