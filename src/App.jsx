@@ -47,7 +47,7 @@ const fmt = (d, tz = DEFAULT_TZ) => (d ? dayjs(d).tz(tz).format("HH:mm") : "--:-
 
 const fittedMosqueTitleStyle = {
   fontSize: "clamp(2rem, 2.35vw, 3rem)",
-  lineHeight: 0.95,
+  lineHeight: 1.08,
   overflowWrap: "anywhere",
 };
 
@@ -2235,7 +2235,7 @@ function MihrabLayout({ view }) {
                   initial={{ opacity: 0, x: -28 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.5, delay: i * 0.07 }}
-                  className={`flex-1 rounded-2xl border-2 px-5 flex items-center justify-between ${rowCls}`}
+                  className={`flex-1 rounded-2xl border-2 px-5 py-2 flex items-center justify-between overflow-visible ${rowCls}`}
                 >
                   <div className="flex items-center gap-4 min-w-0">
                     <motion.span
@@ -2244,12 +2244,12 @@ function MihrabLayout({ view }) {
                       animate={active ? { scale: [1, 1.5, 1], opacity: [0.7, 1, 0.7] } : { scale: 1, opacity: 1 }}
                       transition={active ? { duration: 1.8, repeat: Infinity, ease: "easeInOut" } : { duration: 0.3 }}
                     />
-                    <div className="flex flex-col min-w-0">
-                      <span lang="tr" className="text-6xl font-medium uppercase tracking-tight leading-none truncate">{LABELS[k].tr}</span>
-                      <span className={`text-3xl uppercase ${active ? "text-black/70" : "text-[color:var(--ink-soft)]"}`}>{LABELS[k].ar}</span>
+                    <div className="flex flex-col min-w-0 overflow-visible">
+                      <span lang="tr" className="text-6xl font-medium uppercase tracking-tight leading-[1.08] whitespace-nowrap overflow-visible pb-1">{LABELS[k].tr}</span>
+                      <span className={`text-3xl uppercase leading-[1.08] pb-0.5 ${active ? "text-black/70" : "text-[color:var(--ink-soft)]"}`}>{LABELS[k].ar}</span>
                     </div>
                   </div>
-                  <span className="text-7xl font-medium tabular-nums tracking-tight">{fmt(times[k], config.tz)}</span>
+                  <span className="text-7xl font-medium tabular-nums tracking-tight leading-[1.05] pb-1">{fmt(times[k], config.tz)}</span>
                 </motion.div>
               );
             })}
@@ -2268,7 +2268,7 @@ function MihrabLayout({ view }) {
               </div>
               {weather && <div className="ml-8"><AnimatedWeatherWidget weather={weather} /></div>}
             </div>
-            <div className="text-9xl font-medium tabular-nums leading-none flex items-baseline drop-shadow-[0_0_24px_var(--accent-glow)]">
+            <div className="text-9xl font-medium tabular-nums leading-[1.05] flex items-baseline drop-shadow-[0_0_24px_var(--accent-glow)] pb-1">
               {now.format("HH:mm")}
               <span className="text-5xl text-[color:var(--accent)] ml-3 opacity-90">{now.format("ss")}</span>
             </div>
@@ -2300,9 +2300,9 @@ function MihrabLayout({ view }) {
 
               <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-6" style={{ paddingTop: "13%" }}>
                 <p className="text-[color:var(--accent)] text-2xl font-medium tracking-[0.3em] uppercase mb-3">Nächstes Gebet</p>
-                <h2 className="text-8xl font-medium leading-none tracking-tight">{upcoming.key ? LABELS[upcoming.key].tr : "—"}</h2>
-                <p className="text-4xl text-[color:var(--accent-light)] uppercase tracking-widest mt-3">{upcoming.key ? LABELS[upcoming.key].ar : ""}</p>
-                <p className="text-[9rem] font-medium tabular-nums tracking-tighter leading-none mt-6 whitespace-nowrap">{remaining}</p>
+                <h2 className="text-8xl font-medium leading-[1.08] tracking-tight pb-1">{upcoming.key ? LABELS[upcoming.key].tr : "—"}</h2>
+                <p className="text-4xl text-[color:var(--accent-light)] uppercase tracking-widest leading-[1.1] mt-3 pb-1">{upcoming.key ? LABELS[upcoming.key].ar : ""}</p>
+                <p className="text-[9rem] font-medium tabular-nums tracking-tighter leading-[1.05] mt-5 whitespace-nowrap pb-2">{remaining}</p>
                 <div className="w-[78%] h-6 rounded-full bg-[var(--surface-2)] border border-[color:var(--surface-border)] overflow-hidden mt-7">
                   <motion.div
                     className="h-full rounded-full bg-gradient-to-r from-[var(--accent-strong)] to-[var(--accent)] shadow-[0_0_20px_var(--accent-glow)]"
@@ -2319,7 +2319,7 @@ function MihrabLayout({ view }) {
           </div>
 
           {/* Inhalts-Band */}
-          <div className={`shrink-0 rounded-[30px] ${GLASS} px-8 py-5 flex items-center justify-center text-center overflow-hidden`} style={{ minHeight: "19%" }}>
+          <div className={`shrink-0 rounded-[30px] ${GLASS} px-8 py-5 flex items-center justify-center text-center overflow-visible`} style={{ minHeight: "19%" }}>
             <AnimatePresence mode="wait">
               {specialDay.active ? (
                 <motion.div key="special" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-wrap items-center justify-center gap-x-10 gap-y-2">
@@ -2334,11 +2334,11 @@ function MihrabLayout({ view }) {
                 <motion.div key="iqama" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex items-center justify-center gap-12">
                   <div className="flex items-baseline gap-3">
                     <span className="text-2xl text-[color:var(--accent2)] uppercase tracking-[0.2em]">Aktuell</span>
-                    <span className="text-5xl font-medium italic">{currentPrayerKey ? (upcoming.key === "sunrise" ? "Sabah" : LABELS[currentPrayerKey].tr) : "—"}</span>
+                    <span className="text-5xl font-medium italic leading-[1.12] pb-1">{currentPrayerKey ? (upcoming.key === "sunrise" ? "Sabah" : LABELS[currentPrayerKey].tr) : "—"}</span>
                   </div>
                   <div className="flex items-baseline gap-3">
                     <span className="text-2xl text-[color:var(--ink-soft)] uppercase tracking-widest">Gamet / Iqama</span>
-                    <span className="text-6xl font-medium tabular-nums text-[color:var(--accent)]">
+                    <span className="text-6xl font-medium tabular-nums text-[color:var(--accent)] leading-[1.08] pb-1">
                       {upcoming.key === "sunrise"
                         ? fmt(dayjs(times.sunrise).subtract(45, "minute"), config.tz)
                         : fmt(dayjs(times[upcoming.key]).add(config.iqama[upcoming.key], "minute"), config.tz)}
