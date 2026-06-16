@@ -16,7 +16,7 @@ import { Progress } from "@/components/ui/progress";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Settings, Maximize2, MapPin, Clock, Quote } from "lucide-react";
+import { Settings, Maximize2, MapPin, Clock, Quote, Sun, Cloud, CloudRain, CloudSnow, CloudLightning } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 dayjs.extend(utc);
@@ -255,6 +255,186 @@ const UI_THEMES = [
 ];
 
 const GLASS = "bg-[var(--surface)] border-[color:var(--surface-border)] backdrop-blur-3xl shadow-2xl";
+
+function WeatherIcon({ code, ...props }) {
+  if (code === 0) return <Sun {...props} />;
+  if (code <= 3) return <Cloud {...props} />;
+  if (code <= 48) return <Cloud {...props} />;
+  if (code <= 67) return <CloudRain {...props} />;
+  if (code <= 77) return <CloudSnow {...props} />;
+  if (code <= 82) return <CloudRain {...props} />;
+  if (code <= 86) return <CloudSnow {...props} />;
+  return <CloudLightning {...props} />;
+}
+
+function WeatherBadge({ weather, iconSize = "h-9 w-9", textSize = "text-4xl" }) {
+  if (!weather) return null;
+  return (
+    <div className="flex items-center gap-2 text-[color:var(--ink-soft)]">
+      <WeatherIcon code={weather.code} className={iconSize} />
+      <span className={`${textSize} font-medium tabular-nums`}>{weather.temp}°C</span>
+    </div>
+  );
+}
+
+// Animated weather widget for Mihrab layout
+function AnimatedWeatherWidget({ weather }) {
+  if (!weather) return null;
+  const { temp, code } = weather;
+
+  const isRainy    = (code >= 51 && code <= 67) || (code >= 80 && code <= 82);
+  const isSnowy    = (code >= 71 && code <= 77) || (code >= 85 && code <= 86);
+  const isThundery = code >= 95;
+  const isClear    = code === 0;
+  const isPartly   = code >= 1 && code <= 3;
+  const isCloudy   = !isClear && !isPartly && !isRainy && !isSnowy && !isThundery;
+
+  const drops = [
+    { x: 30, delay: 0 }, { x: 44, delay: 0.22 }, { x: 58, delay: 0.44 },
+    { x: 36, delay: 0.11 }, { x: 51, delay: 0.33 }, { x: 65, delay: 0.55 },
+  ];
+
+  const renderIcon = () => {
+    if (isClear) return (
+      <svg viewBox="0 0 100 100" className="w-full h-full overflow-visible">
+        <defs>
+          <radialGradient id="wSunG" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor="#fde68a" />
+            <stop offset="100%" stopColor="#f59e0b" />
+          </radialGradient>
+        </defs>
+        <motion.circle cx="50" cy="50" r="26" fill="#f59e0b" opacity="0.15"
+          animate={{ r: [26, 33, 26], opacity: [0.15, 0.05, 0.15] }}
+          transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }} />
+        <circle cx="50" cy="50" r="18" fill="url(#wSunG)"
+          style={{ filter: "drop-shadow(0 0 10px rgba(245,158,11,0.7))" }} />
+        <motion.g animate={{ rotate: 360 }}
+          transition={{ duration: 14, repeat: Infinity, ease: "linear" }}
+          style={{ transformOrigin: "50px 50px" }}>
+          {Array.from({ length: 8 }).map((_, i) => (
+            <line key={i} x1="50" y1="27" x2="50" y2="19"
+              stroke="#fde68a" strokeWidth="3" strokeLinecap="round"
+              transform={`rotate(${i * 45} 50 50)`} opacity="0.9" />
+          ))}
+        </motion.g>
+      </svg>
+    );
+
+    if (isPartly) return (
+      <svg viewBox="0 0 100 100" className="w-full h-full overflow-visible">
+        <motion.circle cx="66" cy="36" r="14" fill="#fbbf24"
+          animate={{ opacity: [0.7, 1, 0.7] }}
+          transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+          style={{ filter: "drop-shadow(0 0 6px rgba(251,191,36,0.65))" }} />
+        <motion.g animate={{ x: [0, 4, 0] }}
+          transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}>
+          <circle cx="36" cy="56" r="14" fill="#94a3b8" />
+          <circle cx="52" cy="50" r="18" fill="#94a3b8" />
+          <circle cx="67" cy="56" r="12" fill="#94a3b8" />
+          <rect x="22" y="54" width="57" height="20" rx="6" fill="#94a3b8" />
+        </motion.g>
+      </svg>
+    );
+
+    if (isCloudy) return (
+      <svg viewBox="0 0 100 100" className="w-full h-full">
+        <motion.g animate={{ x: [0, 5, 0] }}
+          transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}>
+          <circle cx="36" cy="46" r="16" fill="#94a3b8" />
+          <circle cx="54" cy="40" r="20" fill="#94a3b8" />
+          <circle cx="70" cy="46" r="14" fill="#94a3b8" />
+          <rect x="20" y="44" width="64" height="24" rx="6" fill="#94a3b8" />
+        </motion.g>
+        {[66, 74, 82].map((y, i) => (
+          <motion.line key={i} x1="28" y1={y} x2="72" y2={y}
+            stroke="#94a3b8" strokeWidth="3" strokeLinecap="round"
+            animate={{ x1: [28, 22, 28], x2: [72, 78, 72], opacity: [0.45, 0.75, 0.45] }}
+            transition={{ duration: 4, repeat: Infinity, delay: i * 0.6, ease: "easeInOut" }} />
+        ))}
+      </svg>
+    );
+
+    if (isRainy) return (
+      <svg viewBox="0 0 100 100" className="w-full h-full overflow-visible">
+        <circle cx="34" cy="40" r="14" fill="#64748b" />
+        <circle cx="51" cy="34" r="18" fill="#64748b" />
+        <circle cx="67" cy="40" r="12" fill="#64748b" />
+        <rect x="20" y="38" width="59" height="18" rx="5" fill="#64748b" />
+        {drops.map(({ x, delay }, i) => (
+          <motion.line key={i} x1={x} y1="60" x2={x - 5} y2="76"
+            stroke="#60a5fa" strokeWidth="2.5" strokeLinecap="round"
+            animate={{ opacity: [0, 0.9, 0.9, 0], y: [0, 0, 16, 16] }}
+            transition={{ duration: 0.85, repeat: Infinity, delay, ease: "easeIn" }} />
+        ))}
+      </svg>
+    );
+
+    if (isSnowy) return (
+      <svg viewBox="0 0 100 100" className="w-full h-full overflow-visible">
+        <circle cx="34" cy="38" r="14" fill="#64748b" />
+        <circle cx="51" cy="32" r="18" fill="#64748b" />
+        <circle cx="67" cy="38" r="12" fill="#64748b" />
+        <rect x="20" y="36" width="59" height="18" rx="5" fill="#64748b" />
+        {drops.map(({ x, delay }, i) => (
+          <motion.g key={i}
+            animate={{ opacity: [0, 0.9, 0.9, 0], y: [0, 0, 22, 22] }}
+            transition={{ duration: 1.8, repeat: Infinity, delay, ease: "easeIn" }}>
+            <circle cx={x} cy="62" r="3" fill="#bfdbfe" />
+            <line x1={x - 5} y1="62" x2={x + 5} y2="62" stroke="#bfdbfe" strokeWidth="1.5" />
+            <line x1={x} y1="57" x2={x} y2="67" stroke="#bfdbfe" strokeWidth="1.5" />
+          </motion.g>
+        ))}
+      </svg>
+    );
+
+    // Thunderstorm
+    return (
+      <svg viewBox="0 0 100 100" className="w-full h-full overflow-visible">
+        <circle cx="34" cy="34" r="15" fill="#475569" />
+        <circle cx="52" cy="28" r="19" fill="#475569" />
+        <circle cx="68" cy="34" r="13" fill="#475569" />
+        <rect x="19" y="32" width="62" height="20" rx="5" fill="#475569" />
+        {drops.slice(0, 4).map(({ x, delay }, i) => (
+          <motion.line key={i} x1={x} y1="56" x2={x - 4} y2="69"
+            stroke="#60a5fa" strokeWidth="2" strokeLinecap="round"
+            animate={{ opacity: [0, 0.7, 0.7, 0], y: [0, 0, 12, 12] }}
+            transition={{ duration: 0.8, repeat: Infinity, delay, ease: "easeIn" }} />
+        ))}
+        <motion.path d="M56 55 L45 72 L54 72 L43 89 L67 67 L56 67 Z"
+          fill="#fbbf24"
+          animate={{ opacity: [1, 1, 0.1, 0.1, 1, 1, 0.1, 1] }}
+          transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut",
+            times: [0, 0.28, 0.33, 0.38, 0.43, 0.68, 0.73, 1] }}
+          style={{ filter: "drop-shadow(0 0 9px rgba(251,191,36,0.85))" }} />
+      </svg>
+    );
+  };
+
+  return (
+    <div className="flex items-center gap-4">
+      <motion.div className="w-[88px] h-[88px] shrink-0"
+        animate={{ y: [0, -6, 0] }}
+        transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}>
+        {renderIcon()}
+      </motion.div>
+      <motion.span
+        className="text-5xl font-bold tabular-nums leading-none"
+        style={{
+          background: "linear-gradient(135deg, var(--accent-light), var(--accent))",
+          WebkitBackgroundClip: "text",
+          WebkitTextFillColor: "transparent",
+        }}
+        animate={{ filter: [
+          "drop-shadow(0 0 6px var(--accent-glow))",
+          "drop-shadow(0 0 18px var(--accent-glow))",
+          "drop-shadow(0 0 6px var(--accent-glow))",
+        ]}}
+        transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}>
+        {temp}°C
+      </motion.span>
+    </div>
+  );
+}
 
 // Neutralfarben (Text/Flächen). Standard = dunkles Design; helle Themes überschreiben sie.
 const NEUTRAL_DARK = {
@@ -553,6 +733,7 @@ export default function PrayerTVBeautiful() {
     return (typeof window !== "undefined" ? localStorage.getItem("prayer_test_day") : null) || null;
   });
   const lastFetchRef = useRef(0);
+  const [weather, setWeather] = useState(null);
 
   const updateDay = (id, patch) =>
     setReligiousDays((prev) => prev.map((d) => (d.id === id ? { ...d, ...patch } : d)));
@@ -677,6 +858,23 @@ export default function PrayerTVBeautiful() {
     fetchRandomAyah(true);
   }, []);
 
+  useEffect(() => {
+    const fetchWeather = async () => {
+      try {
+        const res = await fetch(
+          `https://api.open-meteo.com/v1/forecast?latitude=${config.latitude}&longitude=${config.longitude}&current=temperature_2m,weather_code&timezone=${encodeURIComponent(config.tz)}`
+        );
+        const data = await res.json();
+        if (data.current) {
+          setWeather({ temp: Math.round(data.current.temperature_2m), code: data.current.weather_code });
+        }
+      } catch { /* silently fail */ }
+    };
+    fetchWeather();
+    const id = setInterval(fetchWeather, 600000);
+    return () => clearInterval(id);
+  }, [config.latitude, config.longitude, config.tz]);
+
   const times = useMemo(() => {
     const key = today.format("YYYY-MM-DD");
     const calRow = calendar?.[key];
@@ -750,7 +948,7 @@ export default function PrayerTVBeautiful() {
 
   const view = {
     config, now, hijriText, specialDay, dynamicFontSize, randomAyah,
-    times, upcoming, currentPrayerKey, remaining, progressPct, moonDesign,
+    times, upcoming, currentPrayerKey, remaining, progressPct, moonDesign, weather,
   };
 
   return (
@@ -785,6 +983,11 @@ export default function PrayerTVBeautiful() {
             <span className="text-5xl text-[color:var(--accent2)] font-bold mt-6">
               {now.format("dddd, DD. MMMM")}
             </span>
+            {weather && (
+              <div className="mt-6">
+                <WeatherBadge weather={weather} iconSize="h-10 w-10" textSize="text-4xl" />
+              </div>
+            )}
           </div>
         </div>
 
@@ -1116,7 +1319,7 @@ export default function PrayerTVBeautiful() {
 function FocusLayout({ view }) {
   const {
     config, now, hijriText, specialDay, dynamicFontSize, randomAyah,
-    times, upcoming, currentPrayerKey, remaining, progressPct, moonDesign,
+    times, upcoming, currentPrayerKey, remaining, progressPct, moonDesign, weather,
   } = view;
 
   const RING_R = 86;
@@ -1133,9 +1336,12 @@ function FocusLayout({ view }) {
             <h1 className="text-5xl font-medium uppercase tracking-tight leading-none truncate max-w-[42vw]">
               {config.name}
             </h1>
-            <span className="text-3xl text-[color:var(--accent2)] font-bold mt-2">
-              {now.format("dddd, DD. MMMM")}
-            </span>
+            <div className="flex items-center gap-4 mt-2">
+              <span className="text-3xl text-[color:var(--accent2)] font-bold">
+                {now.format("dddd, DD. MMMM")}
+              </span>
+              {weather && <WeatherBadge weather={weather} iconSize="h-7 w-7" textSize="text-2xl" />}
+            </div>
           </div>
         </div>
         <div className="text-7xl font-medium tabular-nums leading-none flex items-baseline drop-shadow-xl">
@@ -1320,7 +1526,7 @@ function AnimatedBackground() {
 function AuroraLayout({ view }) {
   const {
     config, now, hijriText, specialDay, dynamicFontSize, randomAyah,
-    times, upcoming, currentPrayerKey, remaining, progressPct, moonDesign,
+    times, upcoming, currentPrayerKey, remaining, progressPct, moonDesign, weather,
   } = view;
 
   const RING_R = 88;
@@ -1342,7 +1548,10 @@ function AuroraLayout({ view }) {
             <img src="\DITIB-Logo.svg.png" alt="Moschee Logo" className="h-16 w-auto object-contain drop-shadow-[0_0_20px_var(--accent-glow)]" />
             <div className="flex flex-col min-w-0">
               <h1 className="text-6xl font-medium uppercase tracking-tight leading-none truncate max-w-[44vw]">{config.name}</h1>
-              <span className="text-3xl text-[color:var(--accent2)] font-bold mt-2">{now.format("dddd, DD. MMMM")}</span>
+              <div className="flex items-center gap-4 mt-2">
+                <span className="text-3xl text-[color:var(--accent2)] font-bold">{now.format("dddd, DD. MMMM")}</span>
+                {weather && <WeatherBadge weather={weather} iconSize="h-7 w-7" textSize="text-2xl" />}
+              </div>
             </div>
           </div>
           <div className="text-8xl font-medium tabular-nums leading-none flex items-baseline drop-shadow-[0_0_30px_var(--accent-glow)]">
@@ -1550,7 +1759,7 @@ function MihrabBackground() {
 function MihrabLayout({ view }) {
   const {
     config, now, hijriText, specialDay, randomAyah,
-    times, upcoming, currentPrayerKey, remaining, progressPct, moonDesign,
+    times, upcoming, currentPrayerKey, remaining, progressPct, moonDesign, weather,
   } = view;
 
   const pct = Math.min(100, Math.max(0, progressPct));
@@ -1613,12 +1822,13 @@ function MihrabLayout({ view }) {
         <main className="col-span-8 flex flex-col gap-6 min-h-0">
           {/* Uhr + Mond */}
           <div className="flex items-center justify-between shrink-0">
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-6">
               <MoonPhase size={170} date={now.toDate()} variant={moonDesign} />
               <div className="flex flex-col">
                 <span className="text-3xl uppercase tracking-[0.2em] text-[color:var(--ink-soft)]">{getMoonPhaseName(getMoonPhase(now.toDate()))}</span>
                 <span className="text-6xl font-medium text-[color:var(--accent)] leading-tight">{hijriText}</span>
               </div>
+              {weather && <div className="ml-8"><AnimatedWeatherWidget weather={weather} /></div>}
             </div>
             <div className="text-9xl font-medium tabular-nums leading-none flex items-baseline drop-shadow-[0_0_24px_var(--accent-glow)]">
               {now.format("HH:mm")}
