@@ -387,11 +387,12 @@ function AmbientParticles() {
 
 function CreatorBadge() {
   return (
-    <div className={`absolute bottom-3 right-3 z-40 ${GLASS} rounded-xl p-1.5 flex items-center gap-2`}>
-      <img src={LINKEDIN_QR_SRC} alt="LinkedIn QR" width={36} height={36} className="block rounded-md shrink-0" />
-      <div className="flex flex-col pr-1">
-        <span className="text-[0.55rem] font-medium uppercase tracking-widest text-[color:var(--ink-soft)] leading-none">Metin Gürler</span>
-        <span className="text-[0.5rem] text-[color:var(--accent)] leading-none mt-0.5">LinkedIn ↗</span>
+    <div className={`${GLASS} rounded-xl p-2 flex items-center gap-2 shrink-0`}>
+      <img src={LINKEDIN_QR_SRC} alt="LinkedIn QR" width={42} height={42} className="block rounded-md shrink-0" />
+      <div className="flex flex-col pr-1.5">
+        <span className="text-[0.45rem] font-semibold uppercase tracking-[0.16em] text-[color:var(--accent)] leading-none mb-0.5">Made by</span>
+        <span className="text-[0.65rem] font-medium uppercase tracking-widest text-[color:var(--ink-soft)] leading-none">Metin Gürler</span>
+        <span className="text-[0.6rem] text-[color:var(--accent)] leading-none mt-0.5">LinkedIn ↗</span>
       </div>
     </div>
   );
@@ -1460,7 +1461,7 @@ export default function PrayerTVBeautiful() {
       </div>
       )}
 
-      {showCreatorBadge && <CreatorBadge />}
+      {showCreatorBadge && <div className="absolute bottom-3 right-3 z-50"><CreatorBadge /></div>}
 
       <div className="absolute bottom-4 right-4 z-50 opacity-0 hover:opacity-100 transition-opacity">
         <Sheet>
