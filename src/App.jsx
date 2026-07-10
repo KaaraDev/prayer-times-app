@@ -203,6 +203,7 @@ const UI_THEMES = [
       "--next": "#f8fafc",
       "--next-border": "#ffffff",
       "--next-glow": "rgba(248,250,252,0.52)",
+      "--next-ink": "#1c1608",
     },
   },
   {
@@ -221,6 +222,7 @@ const UI_THEMES = [
       "--next": "#f8fafc",
       "--next-border": "#ffffff",
       "--next-glow": "rgba(248,250,252,0.52)",
+      "--next-ink": "#171d26",
     },
   },
   {
@@ -338,6 +340,51 @@ const LINKEDIN_QR_SRC =
   "&data=https%3A%2F%2Fwww.linkedin.com%2Fin%2Fmetin-g%C3%BCrler-317704278%2F" +
   "&color=000000&bgcolor=FFFFFF&margin=2";
 
+// Leise treibende Lichtpartikel für atmosphärischen Hintergrund
+const AMBIENT_PARTICLES = [
+  { x: 6, y: 14, size: 3, dur: 16, delay: 0 },
+  { x: 18, y: 62, size: 2, dur: 13, delay: 1.2 },
+  { x: 27, y: 30, size: 4, dur: 19, delay: 2.4 },
+  { x: 38, y: 78, size: 2, dur: 14, delay: 0.6 },
+  { x: 47, y: 12, size: 3, dur: 17, delay: 3.1 },
+  { x: 58, y: 46, size: 2, dur: 12, delay: 1.8 },
+  { x: 66, y: 84, size: 3, dur: 18, delay: 0.3 },
+  { x: 74, y: 22, size: 2, dur: 15, delay: 2.7 },
+  { x: 83, y: 58, size: 4, dur: 20, delay: 1.1 },
+  { x: 91, y: 8, size: 2, dur: 13, delay: 3.6 },
+  { x: 12, y: 90, size: 3, dur: 16, delay: 2.1 },
+  { x: 95, y: 70, size: 2, dur: 14, delay: 0.9 },
+];
+
+function AmbientParticles() {
+  return (
+    <div className="pointer-events-none absolute inset-0 overflow-hidden -z-10">
+      {AMBIENT_PARTICLES.map((p, i) => (
+        <motion.span
+          key={i}
+          className="absolute rounded-full bg-[color:var(--accent-light,#ffffff)]"
+          style={{
+            left: `${p.x}%`,
+            top: `${p.y}%`,
+            width: p.size,
+            height: p.size,
+          }}
+          animate={{
+            y: [0, -18, 0],
+            opacity: [0, 0.5, 0],
+          }}
+          transition={{
+            duration: p.dur,
+            delay: p.delay,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
 function CreatorBadge() {
   return (
     <div className={`absolute bottom-3 right-3 z-40 ${GLASS} rounded-xl p-1.5 flex items-center gap-2`}>
@@ -351,7 +398,7 @@ function CreatorBadge() {
 }
 
 // Animated weather widget for Mihrab layout
-function AnimatedWeatherWidget({ weather }) {
+function AnimatedWeatherWidget({ weather, iconBox = "w-[88px] h-[88px]", textSize = "text-5xl" }) {
   if (!weather) return null;
   const { temp, code } = weather;
 
@@ -485,13 +532,13 @@ function AnimatedWeatherWidget({ weather }) {
 
   return (
     <div className="flex items-center gap-4">
-      <motion.div className="w-[88px] h-[88px] shrink-0"
+      <motion.div className={`${iconBox} shrink-0`}
         animate={{ y: [0, -6, 0] }}
         transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}>
         {renderIcon()}
       </motion.div>
       <motion.span
-        className="text-5xl font-bold tabular-nums leading-none"
+        className={`${textSize} font-bold tabular-nums leading-none`}
         style={{
           background: "linear-gradient(135deg, var(--accent-light), var(--accent))",
           WebkitBackgroundClip: "text",
@@ -516,6 +563,7 @@ const NEUTRAL_DARK = {
   "--surface": "rgba(15,23,42,0.6)",
   "--surface-border": "rgba(255,255,255,0.10)",
   "--surface-2": "rgba(255,255,255,0.05)",
+  "--next-ink": "#ffffff",
 };
 
 // Auswählbare Layouts (Gesamtstruktur der Oberfläche)
@@ -524,6 +572,7 @@ const LAYOUTS = [
   { id: "focus",   label: "Fokus" },
   { id: "aurora",  label: "Aurora" },
   { id: "mihrab",  label: "Mihrab" },
+  { id: "horizon", label: "Horizont" },
 ];
 
 // Umriss einer Moschee-Nische (Mihrab-Bogen)
@@ -537,10 +586,10 @@ const DEFAULT_RELIGIOUS_DAYS = [
   { id: "regaib",   type: "day", date: "2026-01-15", title: "Regaib Kandili", window: 6 },
   { id: "mirac",    type: "day", date: "2026-02-15", title: "Miraç Kandili", window: 6 },
   { id: "berat",    type: "day", date: "2026-03-03", title: "Berat Kandili", window: 6 },
-  { id: "ramazan",  type: "day", date: "2026-02-18", title: "Ramazan-ı Şerif\nRamadan-Beginn", window: 8 },
-  { id: "kadir",    type: "day", date: "2026-03-16", title: "Kadir Gecesi\nLailat al-Qadr", window: 6 },
-  { id: "eid-fitr", type: "eid", date: "2026-03-20", title: "Ramazan Bayramı\nEid al-Fitr", sabahTime: "05:35", prayerTime: "07:00", window: 8 },
-  { id: "eid-adha", type: "eid", date: "2026-05-27", title: "Kurban Bayramı\nEid al-Adha", sabahTime: "04:30", prayerTime: "06:30", window: 8 },
+  { id: "ramazan",  type: "day", date: "2026-02-18", title: "Ramazan‑ı Şerif\nRamadan‑Beginn", window: 8 },
+  { id: "kadir",    type: "day", date: "2026-03-16", title: "Kadir Gecesi\nLailat al‑Qadr", window: 6 },
+  { id: "eid-fitr", type: "eid", date: "2026-03-20", title: "Ramazan Bayramı\nEid al‑Fitr", sabahTime: "05:35", prayerTime: "07:00", window: 8 },
+  { id: "eid-adha", type: "eid", date: "2026-05-27", title: "Kurban Bayramı\nEid al‑Adha", sabahTime: "04:30", prayerTime: "06:30", window: 8 },
   { id: "hicri",    type: "day", date: "2026-06-26", title: "Hicri Yılbaşı\nIslam. Neujahr 1448", window: 6 },
   { id: "asure",    type: "day", date: "2026-07-05", title: "Aşure Günü", window: 6 },
   { id: "mevlid",   type: "day", date: "2026-08-25", title: "Mevlid Kandili", window: 6 },
@@ -555,16 +604,16 @@ function SpecialDayPanel({ specialDay, config, variant = "panel" }) {
   if (variant === "band") {
     return (
       <>
-        <span className="text-4xl font-medium text-[color:var(--accent2)] uppercase tracking-[0.25em]">{title.replace(/\n/g, " · ")}</span>
+        <span className="text-3xl font-medium text-[color:var(--accent)] uppercase tracking-[0.15em]" style={{ hyphens: "none" }}>{title.replace(/\n/g, " · ")}</span>
         {type === "eid" ? (
           <>
-            <span className="text-4xl">Sabah <b className="tabular-nums">{fmt(sabahDateTime, config.tz)}</b></span>
-            <span className="text-4xl text-[color:var(--accent)]">Bayram <b className="tabular-nums">{fmt(prayerDateTime, config.tz)}</b></span>
+            <span className="text-3xl">Sabah <b className="tabular-nums">{fmt(sabahDateTime, config.tz)}</b></span>
+            <span className="text-3xl text-[color:var(--accent)]">Bayram <b className="tabular-nums">{fmt(prayerDateTime, config.tz)}</b></span>
           </>
         ) : (
-          <span className="text-4xl text-[color:var(--accent)]">{countdown}</span>
+          <span className="text-3xl text-[color:var(--accent)]">{countdown}</span>
         )}
-        <span className="text-4xl text-[color:var(--ink-soft)] tabular-nums">{dateText}</span>
+        <span className="text-3xl text-[color:var(--ink-soft)] tabular-nums">{dateText}</span>
       </>
     );
   }
@@ -572,23 +621,26 @@ function SpecialDayPanel({ specialDay, config, variant = "panel" }) {
   const lg = variant === "panelLg";
   return (
     <>
-      <p className={`whitespace-pre-line font-medium text-[color:var(--accent2)] uppercase tracking-[0.25em] ${lg ? "text-5xl mb-7" : "text-4xl mb-5"}`}>{title}</p>
-      <h4 className={`font-medium leading-tight text-[color:var(--ink)] ${lg ? "text-5xl mb-10" : "text-4xl mb-7"}`}>
+      <p className={`whitespace-pre-line font-medium text-[color:var(--accent)] uppercase ${lg ? "text-4xl mb-7 tracking-[0.18em]" : "text-3xl mb-5 tracking-[0.15em]"}`} style={{ hyphens: "none" }}>{title}</p>
+      <h4 className={`font-medium leading-tight text-[color:var(--ink)] ${lg ? "text-4xl mb-7" : "text-3xl mb-5"}`}>
         {type === "eid" ? (isToday ? "Heute ist Bayram" : `${countdown} bis Bayram / Eid`) : countdown}
       </h4>
       {type === "eid" && (
-        <div className="w-full grid grid-cols-2 gap-6">
-          <div className={`bg-[var(--surface-2)] rounded-[32px] border border-[color:var(--surface-border)] flex flex-col items-center ${lg ? "p-10" : "p-6"}`}>
-            <p className={`text-[color:var(--ink-soft)] uppercase tracking-widest ${lg ? "text-3xl mb-4" : "text-2xl mb-3"}`}>Sabah</p>
-            <p className={`font-medium leading-none tabular-nums text-[color:var(--ink)] ${lg ? "text-[7rem]" : "text-7xl"}`}>{fmt(sabahDateTime, config.tz)}</p>
+        <>
+          <p className={`font-medium text-[color:var(--ink-soft)] uppercase tracking-[0.2em] ${lg ? "text-2xl mb-4" : "text-xl mb-3"}`}>Namazlar</p>
+          <div className="w-full grid grid-cols-2 gap-6">
+            <div className={`bg-[var(--surface-2)] rounded-[32px] border border-[color:var(--surface-border)] flex flex-col items-center ${lg ? "p-10" : "p-6"}`}>
+              <p className={`font-semibold text-[color:var(--ink-soft)] uppercase tracking-widest ${lg ? "text-3xl mb-3" : "text-2xl mb-2"}`}>Sabah</p>
+              <p className={`font-medium leading-none tabular-nums text-[color:var(--ink)] ${lg ? "text-7xl" : "text-6xl"}`}>{fmt(sabahDateTime, config.tz)}</p>
+            </div>
+            <div className={`bg-[var(--accent2-soft)] rounded-[32px] border border-[color:var(--accent2-soft)] flex flex-col items-center ${lg ? "p-10" : "p-6"}`}>
+              <p className={`font-semibold text-[color:var(--accent2)] uppercase tracking-widest ${lg ? "text-3xl mb-3" : "text-2xl mb-2"}`}>Bayram</p>
+              <p className={`font-medium leading-none tabular-nums text-[color:var(--accent-light)] ${lg ? "text-7xl" : "text-6xl"}`}>{fmt(prayerDateTime, config.tz)}</p>
+            </div>
           </div>
-          <div className={`bg-[var(--accent2-soft)] rounded-[32px] border border-[color:var(--accent2-soft)] flex flex-col items-center ${lg ? "p-10" : "p-6"}`}>
-            <p className={`text-[color:var(--accent2)] uppercase tracking-widest ${lg ? "text-3xl mb-4" : "text-2xl mb-3"}`}>Bayram namazı</p>
-            <p className={`font-medium leading-none tabular-nums text-[color:var(--accent-light)] ${lg ? "text-[7rem]" : "text-7xl"}`}>{fmt(prayerDateTime, config.tz)}</p>
-          </div>
-        </div>
+        </>
       )}
-      <p className={`text-[color:var(--ink-soft)] ${lg ? "mt-8 text-4xl" : "mt-6 text-3xl"}`}>{dateText}</p>
+      <p className={`text-[color:var(--ink-soft)] ${lg ? "mt-6 text-3xl" : "mt-4 text-2xl"}`}>{dateText}</p>
     </>
   );
 }
@@ -756,6 +808,45 @@ function MoonPhase({ size = 140, date = new Date(), variant = "classic" }) {
         {renderMoon()}
       </svg>
     </motion.div>
+  );
+}
+
+// Analoge Uhr, deren Zeiger permanent auf die Fajr-Fard-Zeit (Sonnenaufgang - 45 Min) zeigen
+function FajrAnalogClock({ size = 110, time }) {
+  const t = dayjs(time);
+  const hours = t.hour() % 12;
+  const minutes = t.minute();
+  const cx = 50, cy = 50;
+  const toXY = (angleDeg, len) => {
+    const rad = ((angleDeg - 90) * Math.PI) / 180;
+    return { x: cx + len * Math.cos(rad), y: cy + len * Math.sin(rad) };
+  };
+  const hourPt = toXY(hours * 30 + minutes * 0.5, 24);
+  const minutePt = toXY(minutes * 6, 34);
+  const ticks = Array.from({ length: 12 }, (_, i) => {
+    const angle = i * 30;
+    const major = i % 3 === 0;
+    const outer = toXY(angle, 44);
+    const inner = toXY(angle, major ? 36 : 39);
+    return { ...outer, x2: inner.x, y2: inner.y, major };
+  });
+
+  return (
+    <svg viewBox="0 0 100 100" width={size} height={size} className="shrink-0">
+      <circle cx={cx} cy={cy} r="46" fill="var(--surface)" stroke="var(--accent)" strokeWidth="2" />
+      {ticks.map((tk, i) => (
+        <line
+          key={i}
+          x1={tk.x2} y1={tk.y2} x2={tk.x} y2={tk.y}
+          stroke={tk.major ? "var(--accent)" : "var(--ink-soft)"}
+          strokeWidth={tk.major ? 2 : 1}
+          strokeLinecap="round"
+        />
+      ))}
+      <line x1={cx} y1={cy} x2={hourPt.x} y2={hourPt.y} stroke="var(--ink)" strokeWidth="3.4" strokeLinecap="round" />
+      <line x1={cx} y1={cy} x2={minutePt.x} y2={minutePt.y} stroke="var(--accent)" strokeWidth="2.4" strokeLinecap="round" />
+      <circle cx={cx} cy={cy} r="2.6" fill="var(--accent)" />
+    </svg>
   );
 }
 
@@ -1065,6 +1156,7 @@ export default function PrayerTVBeautiful() {
   }, [upcoming, times, now]);
 
   const glass = GLASS;
+  const fajrClockTime = dayjs(times.sunrise).subtract(45, "minute");
 
   const view = {
     config, now, hijriText, specialDay, dynamicFontSize, randomAyah,
@@ -1111,58 +1203,92 @@ export default function PrayerTVBeautiful() {
         <AuroraLayout view={view} />
       ) : layout === "mihrab" ? (
         <MihrabLayout view={view} />
+      ) : layout === "horizon" ? (
+        <HorizonLayout view={view} />
       ) : (
-      <div className="h-full w-full p-8 flex flex-col justify-between">
+      <div className="relative h-full w-full p-8 flex flex-col justify-between">
+      <AmbientParticles />
       {/* HEADER */}
       <header className="flex items-center justify-between h-[15%]">
         <div className="flex flex-col gap-2 max-w-[75%]">
           <div className="flex items-center gap-6">
-            <img
+            <motion.img
               src="\DITIB-Logo.svg.png"
               alt="Moschee Logo"
               className="h-16 w-auto object-contain"
+              initial={{ opacity: 0, y: -24, scale: 0.85 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ duration: 0.7, ease: "easeOut" }}
             />
 
-            <h1 className="text-7xl font-medium tracking-tight uppercase leading-none truncate drop-shadow-lg">
+            <motion.h1
+              className="text-7xl font-medium tracking-tight uppercase leading-none truncate drop-shadow-lg"
+              initial={{ opacity: 0, y: -24 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, ease: "easeOut", delay: 0.1 }}
+            >
               {config.name}
-            </h1>
+            </motion.h1>
           </div>
           <div className="flex gap-6 items-center">
-            <span className="text-5xl text-[color:var(--accent2)] font-bold mt-6">
+            <motion.span
+              className="text-5xl text-[color:var(--accent)] font-bold mt-6"
+              initial={{ opacity: 0, y: -16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, ease: "easeOut", delay: 0.25 }}
+            >
               {now.format("dddd, DD. MMMM")}
-            </span>
+            </motion.span>
             {weather && (
-              <div className="mt-6">
-                <WeatherBadge weather={weather} iconSize="h-10 w-10" textSize="text-4xl" />
-              </div>
+              <motion.div
+                className="mt-6"
+                initial={{ opacity: 0, y: -16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.7, ease: "easeOut", delay: 0.4 }}
+              >
+                <AnimatedWeatherWidget weather={weather} iconBox="w-16 h-16" textSize="text-4xl" />
+              </motion.div>
             )}
           </div>
         </div>
 
-        <div className="flex flex-col items-end">
+        <motion.div
+          className="flex flex-col items-end"
+          initial={{ opacity: 0, x: 40 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.7, ease: "easeOut", delay: 0.15 }}
+        >
           <div className="text-[10rem] font-medium tabular-nums leading-none flex items-baseline drop-shadow-2xl">
             {now.format("HH:mm")}
             <span className="text-6xl text-[color:var(--accent)] font-medium ml-6 tracking-[0.1em] opacity-90">{now.format("ss")}</span>
           </div>
-        </div>
+        </motion.div>
       </header>
 
       {/* MAIN CONTENT AREA */}
       <main className="grid grid-cols-12 gap-8 h-[55%] my-4">
         <Card className={`col-span-8 rounded-[55px] ${glass} border-t-[color:var(--accent)] border-t-8 flex flex-col`}>
-          <CardContent className="p-12 h-full flex flex-col justify-between overflow-hidden">
+          <CardContent className="relative p-12 h-full flex flex-col justify-between overflow-hidden">
             <div>
               <p className="text-[color:var(--accent)] text-2xl font-medium tracking-[0.3em] uppercase mb-6 flex items-center gap-4">
                 <span className="w-14 h-1.5 bg-[var(--accent)]" /> Nächstes Gebet
               </p>
-              <h2 className="text-[7.5rem] font-medium leading-none tracking-tighter">
+              <h2 className="text-[7.5rem] font-medium leading-none tracking-tighter whitespace-nowrap">
                 {upcoming.key ? (
-                  <>{LABELS[upcoming.key].tr} <span className="text-[color:var(--ink-soft)] font-thin text-[7.5rem] mx-4">/</span> <span className="text-[color:var(--accent-light)] text-[7.5rem]">{LABELS[upcoming.key].ar}</span></>
+                  <>{LABELS[upcoming.key].tr} <span className="text-[color:var(--ink-soft)] font-thin text-[inherit] mx-4">/</span> <span className="text-[color:var(--accent-light)] text-[inherit]">{LABELS[upcoming.key].ar}</span></>
                 ) : "—"}
               </h2>
-              <p className="text-5xl font-bold text-[color:var(--ink-soft)] mt-6 tracking-tight italic mt-12">
+              <p className="max-w-[52%] text-5xl font-bold text-[color:var(--ink-soft)] mt-6 tracking-tight italic mt-12">
                 Beginn um {fmt(upcoming.t, config.tz)} Uhr {upcoming.isTomorrow ? "(Morgen)" : ""}
               </p>
+            </div>
+
+            <div className="absolute top-16 right-10 z-10 w-[42%] max-w-[380px] flex flex-col items-center justify-center gap-5 bg-[var(--surface-2)] px-7 py-6 rounded-[40px] border border-[color:var(--surface-border)] shadow-inner">
+              <FajrAnalogClock size={180} time={fajrClockTime} />
+              <div className="flex flex-col items-center text-center text-[color:var(--accent)] min-w-0">
+                <span className="text-3xl font-semibold uppercase tracking-[0.08em] text-[color:var(--ink)] mb-2">Sabah / Fajr Farz</span>
+                <span className="text-6xl font-medium leading-tight tabular-nums">{fmt(fajrClockTime, config.tz)}</span>
+              </div>
             </div>
 
             <div className="flex justify-between items-end gap-8">
@@ -1170,12 +1296,36 @@ export default function PrayerTVBeautiful() {
                 <p lang="de" className="text-[color:var(--ink-soft)] text-2xl font-medium mb-3 uppercase tracking-widest">Verbleibend</p>
                 <p className="text-[8rem] font-medium tabular-nums tracking-tighter leading-none">{remaining}</p>
                 <div className="h-7 w-full bg-[var(--surface-2)] rounded-full mt-8 overflow-hidden border border-[color:var(--surface-border)] p-1 shadow-inner">
-                  <motion.div initial={{ width: 0 }} animate={{ width: `${progressPct}%` }} className="h-full bg-gradient-to-r from-[var(--accent-strong)] to-[var(--accent)] rounded-full shadow-[0_0_40px_var(--accent-glow)]" />
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${progressPct}%` }}
+                    className="relative h-full overflow-hidden bg-gradient-to-r from-[var(--accent-strong)] to-[var(--accent)] rounded-full shadow-[0_0_40px_var(--accent-glow)]"
+                  >
+                    <motion.div
+                      className="absolute inset-y-0 w-1/3"
+                      style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.55), transparent)" }}
+                      animate={{ x: ["-120%", "220%"] }}
+                      transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
+                    />
+                  </motion.div>
                 </div>
               </div>
 
               <div className="w-[42%] flex items-center justify-center gap-7 bg-[var(--surface-2)] px-10 py-6 rounded-[35px] border border-[color:var(--surface-border)] shadow-xl">
-                <MoonPhase size={140} date={now.toDate()} variant={moonDesign} />
+                <motion.div
+                  className="shrink-0"
+                  animate={{
+                    y: [0, -6, 0],
+                    filter: [
+                      "drop-shadow(0 0 8px var(--accent-glow))",
+                      "drop-shadow(0 0 20px var(--accent-glow))",
+                      "drop-shadow(0 0 8px var(--accent-glow))",
+                    ],
+                  }}
+                  transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+                >
+                  <MoonPhase size={140} date={now.toDate()} variant={moonDesign} />
+                </motion.div>
                 <div className="flex flex-col text-[color:var(--accent)] min-w-0">
                   <span className="text-xl uppercase tracking-[0.2em] text-[color:var(--ink-soft)] mb-2">
                     {getMoonPhaseName(getMoonPhase(now.toDate()))}
@@ -1190,10 +1340,10 @@ export default function PrayerTVBeautiful() {
         </Card>
 
         {/* RECHTS: AKTUELL / ZITAT */}
-        <Card className={`col-span-4 rounded-[55px] ${glass} p-12 flex flex-col justify-between border-t-[color:var(--accent2)] border-t-8 overflow-hidden h-full`}>
+        <Card className={`col-span-4 rounded-[55px] ${glass} p-12 flex flex-col justify-between border-t-[color:var(--accent)] border-t-8 overflow-hidden h-full`}>
           {!specialDay.active && (
             <div className="h-[25%] shrink-0">
-              <p className="text-[color:var(--accent2)] text-2xl font-medium tracking-[0.3em] uppercase mb-2">Aktuell</p>
+              <p className="text-[color:var(--accent)] text-3xl font-medium tracking-[0.3em] uppercase mb-2">Aktuell</p>
               <h3 className="text-5xl font-medium leading-tight italic truncate">
                 {currentPrayerKey ? (
                   <>{upcoming.key === "sunrise" ? "Sabah" : LABELS[currentPrayerKey].tr} <span className="text-[color:var(--ink-soft)] text-3xl">/ {LABELS[currentPrayerKey].ar}</span></>
@@ -1209,9 +1359,10 @@ export default function PrayerTVBeautiful() {
               {specialDay.active ? (
                 <motion.div
                   key="special"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
+                  initial={{ opacity: 0, y: 18 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -18 }}
+                  transition={{ duration: 0.45, ease: "easeOut" }}
                   className="w-full h-full flex flex-col items-center justify-center text-center px-4"
                 >
                   <SpecialDayPanel specialDay={specialDay} config={config} variant="panelLg" />
@@ -1219,9 +1370,10 @@ export default function PrayerTVBeautiful() {
               ) : upcoming.key && config.iqama[upcoming.key] === 0 ? (
                 <motion.div
                   key="ayah"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
+                  initial={{ opacity: 0, y: 18 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -18 }}
+                  transition={{ duration: 0.45, ease: "easeOut" }}
                   className="w-full flex flex-col items-center justify-center"
                   style={{ hyphens: "auto", wordBreak: "break-word" }}
                 >
@@ -1243,9 +1395,10 @@ export default function PrayerTVBeautiful() {
               ) : (
                 <motion.div
                   key="iqama"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
+                  initial={{ opacity: 0, y: 18 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -18 }}
+                  transition={{ duration: 0.45, ease: "easeOut" }}
                   className="flex flex-col items-center"
                 >
                   <Clock className="h-12 w-12 text-[color:var(--accent)] mb-4 opacity-70" />
@@ -1272,15 +1425,16 @@ export default function PrayerTVBeautiful() {
           const isNext =
             upcoming.key === k &&
             (!upcoming.isTomorrow || now.hour() === 0);
+          const useDarkerTimelineText = theme.id === "turquoise" && !active && !isNext;
 
           // Logik für die dynamischen Klassen
-          let statusClasses = "bg-[var(--surface-2)] border-transparent opacity-90 text-[color:var(--ink)]"; // Standard (Vergangen/Zukünftig)
+          let statusClasses = `bg-[var(--surface-2)] border-transparent opacity-90 ${useDarkerTimelineText ? "text-[#021b19]" : "text-[color:var(--ink)]"}`; // Standard (Vergangen/Zukünftig)
 
           if (active) {
             statusClasses = "bg-[var(--accent-strong)] border-[color:var(--accent-light)] shadow-[0_0_80px_var(--accent-glow)] scale-110 z-20 text-black";
           } else if (isNext) {
             // Hervorhebung für das nächste Gebet
-            statusClasses = "bg-[var(--next)] border-[color:var(--next-border)] shadow-[0_0_60px_var(--next-glow)] z-10 text-white animate-pulse-subtle";
+            statusClasses = "bg-[var(--next)] border-[color:var(--next-border)] shadow-[0_0_60px_var(--next-glow)] z-10 text-[color:var(--next-ink)] animate-pulse-subtle";
           }
 
           return (
@@ -1292,11 +1446,11 @@ export default function PrayerTVBeautiful() {
                 <span lang="tr" className="text-4xl font-medium uppercase tracking-tighter leading-none">
                   {LABELS[k].tr}
                 </span>
-                <span className={`text-2xl font-bold opacity-70 uppercase leading-none mt-2 ${active ? "text-black" : "text-[color:var(--ink-soft)]"}`}>
+                <span className={`text-2xl font-bold opacity-70 uppercase leading-none mt-2 ${active ? "text-black" : isNext ? "text-[color:var(--next-ink)]" : useDarkerTimelineText ? "text-[#021b19]" : "text-[color:var(--ink-soft)]"}`}>
                   {LABELS[k].ar}
                 </span>
               </div>
-              <p className={`text-[5.5rem] font-medium tabular-nums leading-none tracking-tighter ${active ? "text-black" : "text-[color:var(--ink)]"}`}>
+              <p className={`text-[5.5rem] font-medium tabular-nums leading-none tracking-tighter ${active ? "text-black" : isNext ? "text-[color:var(--next-ink)]" : useDarkerTimelineText ? "text-[#021b19]" : "text-[color:var(--ink)]"}`}>
                 {fmt(times[k], config.tz)}
               </p>
             </motion.div>
@@ -1462,7 +1616,7 @@ export default function PrayerTVBeautiful() {
                           {isTest ? "Test an" : "Test"}
                         </button>
                       </div>
-                      <div className="flex flex-wrap items-center gap-2">
+                      <div className="flex items-center gap-2">
                         <input
                           type="date"
                           value={ev.date || ""}
@@ -1470,27 +1624,31 @@ export default function PrayerTVBeautiful() {
                           style={{ colorScheme: "dark" }}
                           className="rounded border border-white/10 bg-white/5 px-2 py-1 text-xs text-white"
                         />
-                        {ev.type === "eid" && (
-                          <>
-                            <span className="text-xs text-slate-400">Sabah</span>
+                      </div>
+                      {ev.type === "eid" && (
+                        <div className="mt-2 grid grid-cols-2 gap-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-slate-400 shrink-0">Sabah</span>
                             <input
                               type="time"
                               value={ev.sabahTime || ""}
                               onChange={(e) => updateDay(ev.id, { sabahTime: e.target.value })}
                               style={{ colorScheme: "dark" }}
-                              className="rounded border border-white/10 bg-white/5 px-2 py-1 text-xs text-white"
+                              className="w-full min-w-0 rounded border border-white/10 bg-white/5 px-2 py-1 text-xs text-white"
                             />
-                            <span className="text-xs text-slate-400">Bayram</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-slate-400 shrink-0">Bayram</span>
                             <input
                               type="time"
                               value={ev.prayerTime || ""}
                               onChange={(e) => updateDay(ev.id, { prayerTime: e.target.value })}
                               style={{ colorScheme: "dark" }}
-                              className="rounded border border-white/10 bg-white/5 px-2 py-1 text-xs text-white"
+                              className="w-full min-w-0 rounded border border-white/10 bg-white/5 px-2 py-1 text-xs text-white"
                             />
-                          </>
-                        )}
-                      </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -2349,6 +2507,281 @@ function MihrabLayout({ view }) {
             </AnimatePresence>
           </div>
         </main>
+      </div>
+    </div>
+  );
+}
+
+// Horizont-Layout: der Tag als Himmelsbogen – Sonne bzw. Mond wandern über die Bahn,
+// die Gebete sind Stationen an ihrer tatsächlichen Tageszeit
+function HorizonLayout({ view }) {
+  const {
+    config, now, hijriText, specialDay, dynamicFontSize, randomAyah,
+    times, upcoming, currentPrayerKey, remaining, moonDesign, weather,
+  } = view;
+
+  // Bruchteil des Tages (0 = Mitternacht, 1 = nächste Mitternacht)
+  const dayFrac = (d) => {
+    const t = dayjs(d).tz(config.tz);
+    return (t.hour() * 3600 + t.minute() * 60 + t.second()) / 86400;
+  };
+
+  // Elliptischer Tagesbogen: Punkt für einen Tagesbruchteil, optional nach außen versetzt
+  const CX = 500, CY = 350, RX = 455, RY = 260;
+  const arcPoint = (frac, extra = 0) => {
+    const a = Math.PI * (1 - frac);
+    return { x: CX + (RX + extra) * Math.cos(a), y: CY - (RY + extra) * Math.sin(a) };
+  };
+  const ARC_D = `M ${CX - RX} ${CY} A ${RX} ${RY} 0 0 1 ${CX + RX} ${CY}`;
+
+  const nowFrac = dayFrac(now);
+  const isDay = now.isAfter(dayjs(times.sunrise)) && now.isBefore(dayjs(times.maghrib));
+  const orb = arcPoint(nowFrac);
+
+  const stars = [
+    [6, 18], [14, 38], [22, 12], [34, 26], [46, 8], [58, 20],
+    [68, 34], [78, 10], [88, 24], [94, 40], [40, 44], [72, 48],
+  ];
+
+  return (
+    <div className="relative h-full w-full overflow-hidden">
+      {/* Horizontschein am Boden */}
+      <div
+        className="absolute inset-x-0 bottom-0 pointer-events-none"
+        style={{
+          height: "50%",
+          background: "radial-gradient(ellipse at 50% 115%, var(--accent-glow) 0%, transparent 68%)",
+          opacity: 0.45,
+          filter: "blur(28px)",
+        }}
+      />
+      {/* Funkelnde Sterne, nur nachts */}
+      {!isDay && stars.map(([x, y], i) => (
+        <motion.div
+          key={i}
+          className="absolute rounded-full bg-[color:var(--ink)] pointer-events-none"
+          style={{ width: 4, height: 4, left: `${x}%`, top: `${y}%` }}
+          animate={{ opacity: [0.1, 0.65, 0.1], scale: [0.8, 1.25, 0.8] }}
+          transition={{ duration: 3 + (i % 4), repeat: Infinity, delay: i * 0.35, ease: "easeInOut" }}
+        />
+      ))}
+
+      <div className="relative z-10 h-full w-full px-10 pt-8 pb-8 flex flex-col gap-5">
+        {/* KOPF */}
+        <header className="flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-5">
+            <img src="\DITIB-Logo.svg.png" alt="Moschee Logo" className="h-14 w-auto object-contain" />
+            <div className="flex flex-col min-w-0">
+              <h1 className="text-5xl font-medium uppercase tracking-tight leading-none truncate max-w-[46vw]">
+                {config.name}
+              </h1>
+              <div className="flex items-center gap-4 mt-2">
+                <span className="text-3xl text-[color:var(--accent2)] font-bold">{now.format("dddd, DD. MMMM")}</span>
+                {weather && <WeatherBadge weather={weather} iconSize="h-7 w-7" textSize="text-2xl" />}
+              </div>
+            </div>
+          </div>
+          <div className="text-8xl font-medium tabular-nums leading-none flex items-baseline drop-shadow-[0_0_28px_var(--accent-glow)]">
+            {now.format("HH:mm")}
+            <span className="text-4xl text-[color:var(--accent)] ml-3 opacity-90">{now.format("ss")}</span>
+          </div>
+        </header>
+
+        {/* TAGESBOGEN */}
+        <div className="flex-1 relative min-h-0">
+          <svg viewBox="0 0 1000 380" preserveAspectRatio="xMidYMax meet" className="absolute inset-0 h-full w-full overflow-visible">
+            <defs>
+              <linearGradient id="horizonArcGrad" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" style={{ stopColor: "var(--accent-strong)" }} />
+                <stop offset="55%" style={{ stopColor: "var(--accent)" }} />
+                <stop offset="100%" style={{ stopColor: "var(--accent-light)" }} />
+              </linearGradient>
+              <radialGradient id="horizonOrbGrad" cx="38%" cy="34%" r="75%">
+                <stop offset="0%" stopColor={isDay ? "#fff7da" : "#ffffff"} />
+                <stop offset="100%" stopColor={isDay ? "#f59e0b" : "#94a3b8"} />
+              </radialGradient>
+            </defs>
+
+            {/* Horizontlinie */}
+            <line x1={CX - RX - 25} y1={CY} x2={CX + RX + 25} y2={CY} stroke="var(--surface-border)" strokeWidth="2" />
+
+            {/* Bahn: kommender Teil + zurückgelegter Teil */}
+            <path d={ARC_D} fill="none" stroke="var(--surface-2)" strokeWidth="5" strokeLinecap="round" />
+            <path
+              d={ARC_D}
+              fill="none"
+              stroke="url(#horizonArcGrad)"
+              strokeWidth="5"
+              strokeLinecap="round"
+              pathLength={1}
+              strokeDasharray={`${nowFrac} 1`}
+              style={{ filter: "drop-shadow(0 0 7px var(--accent-glow))" }}
+            />
+
+            {/* Gebets-Stationen entlang der Bahn */}
+            {PRAYER_ORDER.map((k) => {
+              const f = dayFrac(times[k]);
+              const p = arcPoint(f);
+              // Güneş und Yatsı liegen zeitlich dicht an ihren Nachbarn – ihre
+              // Beschriftung wandert auf die Innenseite des Bogens
+              const inner = k === "sunrise" || k === "isha";
+              const tick = arcPoint(f, inner ? -30 : 30);
+              const lbl = arcPoint(f, inner ? -108 : 100);
+              const lblX = Math.min(905, Math.max(95, lbl.x));
+              const active = currentPrayerKey === k;
+              const isNext = upcoming.key === k && (!upcoming.isTomorrow || now.hour() === 0);
+              const col = active ? "var(--accent)" : isNext ? "var(--next)" : "var(--ink-soft)";
+              return (
+                <g key={k}>
+                  <line x1={p.x} y1={p.y} x2={tick.x} y2={tick.y} stroke={col} strokeWidth="2" opacity="0.6" />
+                  {isNext && (
+                    <motion.circle
+                      cx={p.x}
+                      cy={p.y}
+                      fill="none"
+                      stroke="var(--next)"
+                      strokeWidth="2"
+                      animate={{ r: [10, 22, 10], opacity: [0.9, 0, 0.9] }}
+                      transition={{ duration: 2.2, repeat: Infinity, ease: "easeOut" }}
+                    />
+                  )}
+                  <circle
+                    cx={p.x}
+                    cy={p.y}
+                    r={active || isNext ? 10 : 7}
+                    fill={f <= nowFrac ? col : "var(--surface)"}
+                    stroke={col}
+                    strokeWidth="2.5"
+                    style={active || isNext ? { filter: `drop-shadow(0 0 8px ${active ? "var(--accent-glow)" : "var(--next-glow)"})` } : undefined}
+                  />
+                  <text
+                    x={lblX}
+                    y={lbl.y - 22}
+                    textAnchor="middle"
+                    fill={active ? "var(--accent)" : isNext ? "var(--next)" : "var(--ink)"}
+                    fontSize="36"
+                    fontWeight="600"
+                    style={{ textTransform: "uppercase", letterSpacing: "0.06em" }}
+                    lang="tr"
+                  >
+                    {LABELS[k].tr}
+                  </text>
+                  <text
+                    x={lblX}
+                    y={lbl.y + 26}
+                    textAnchor="middle"
+                    fill={active || isNext ? col : "var(--ink)"}
+                    fontSize="46"
+                    fontWeight="500"
+                    style={{ fontVariantNumeric: "tabular-nums" }}
+                  >
+                    {fmt(times[k], config.tz)}
+                  </text>
+                </g>
+              );
+            })}
+
+            {/* Wandernde Sonne / Mond an der aktuellen Uhrzeit */}
+            <g>
+              <circle
+                cx={orb.x}
+                cy={orb.y}
+                r="34"
+                fill={isDay ? "rgba(245,158,11,0.25)" : "rgba(226,232,240,0.18)"}
+                style={{ filter: "blur(10px)" }}
+              />
+              {isDay && (
+                <motion.g
+                  animate={{ opacity: [0.45, 0.95, 0.45] }}
+                  transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                >
+                  {Array.from({ length: 8 }).map((_, i) => (
+                    <line
+                      key={i}
+                      x1={orb.x}
+                      y1={orb.y - 24}
+                      x2={orb.x}
+                      y2={orb.y - 31}
+                      stroke="#fde68a"
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                      transform={`rotate(${i * 45} ${orb.x} ${orb.y})`}
+                    />
+                  ))}
+                </motion.g>
+              )}
+              <circle
+                cx={orb.x}
+                cy={orb.y}
+                r="16"
+                fill="url(#horizonOrbGrad)"
+                style={{ filter: `drop-shadow(0 0 14px ${isDay ? "rgba(245,158,11,0.8)" : "rgba(226,232,240,0.75)"})` }}
+              />
+            </g>
+          </svg>
+
+          {/* Countdown im Inneren des Bogens */}
+          <div className="absolute inset-x-0 bottom-[9%] flex flex-col items-center text-center pointer-events-none">
+            <p className="text-[color:var(--accent)] text-2xl font-medium tracking-[0.3em] uppercase mb-2">Nächstes Gebet</p>
+            <h2 className="text-7xl font-medium leading-none tracking-tight">
+              {upcoming.key ? LABELS[upcoming.key].tr : "—"}
+              {upcoming.key && (
+                <span className="text-[color:var(--accent-light)] text-4xl uppercase tracking-widest ml-5">{LABELS[upcoming.key].ar}</span>
+              )}
+            </h2>
+            <p className="text-[7.5rem] font-medium tabular-nums tracking-tighter leading-none mt-4">{remaining}</p>
+            <p className="text-2xl text-[color:var(--ink-soft)] italic mt-3">
+              Beginn um {fmt(upcoming.t, config.tz)} Uhr {upcoming.isTomorrow ? "(Morgen)" : ""}
+            </p>
+          </div>
+        </div>
+
+        {/* FUSSBAND: Mond & Hijri + Ayah / Iqama / religiöser Tag */}
+        <footer className={`shrink-0 rounded-[30px] ${GLASS} border-t-[color:var(--accent2)] border-t-4 px-8 py-4 flex items-center gap-8`} style={{ minHeight: "17%" }}>
+          <div className="flex items-center gap-4 shrink-0">
+            <MoonPhase size={100} date={now.toDate()} variant={moonDesign} />
+            <div className="flex flex-col">
+              <span className="text-sm uppercase tracking-[0.2em] text-[color:var(--ink-soft)]">
+                {getMoonPhaseName(getMoonPhase(now.toDate()))}
+              </span>
+              <span className="text-2xl font-medium text-[color:var(--accent)] leading-tight">{hijriText}</span>
+            </div>
+          </div>
+          <div className="self-stretch w-px bg-[var(--surface-border)] shrink-0" />
+          <div className="flex-1 min-w-0 flex items-center justify-center text-center overflow-hidden">
+            <AnimatePresence mode="wait">
+              {specialDay.active ? (
+                <motion.div key="special" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-wrap items-center justify-center gap-x-10 gap-y-2">
+                  <SpecialDayPanel specialDay={specialDay} config={config} variant="band" />
+                </motion.div>
+              ) : upcoming.key && config.iqama[upcoming.key] === 0 ? (
+                <motion.div key="ayah" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col items-center" style={{ hyphens: "auto", wordBreak: "break-word" }}>
+                  <p lang="de" className="font-medium text-[color:var(--ink)] italic leading-snug text-center" style={{ fontSize: `min(${dynamicFontSize}, 2.2rem)`, transition: "font-size 0.3s ease" }}>
+                    "{randomAyah.text}"
+                  </p>
+                  <p className="mt-2 text-lg text-[color:var(--accent)] font-medium uppercase tracking-widest opacity-70">{randomAyah.ref}</p>
+                </motion.div>
+              ) : (
+                <motion.div key="iqama" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex items-center justify-center gap-12">
+                  <div className="flex items-baseline gap-3">
+                    <span className="text-2xl text-[color:var(--accent2)] uppercase tracking-[0.2em]">Aktuell</span>
+                    <span className="text-5xl font-medium italic leading-[1.12] pb-1">
+                      {currentPrayerKey ? (upcoming.key === "sunrise" ? "Sabah" : LABELS[currentPrayerKey].tr) : "—"}
+                    </span>
+                  </div>
+                  <div className="flex items-baseline gap-3">
+                    <span className="text-2xl text-[color:var(--ink-soft)] uppercase tracking-widest">Gamet / Iqama</span>
+                    <span className="text-6xl font-medium tabular-nums text-[color:var(--accent)] leading-[1.08] pb-1">
+                      {upcoming.key === "sunrise"
+                        ? fmt(dayjs(times.sunrise).subtract(45, "minute"), config.tz)
+                        : fmt(dayjs(times[upcoming.key]).add(config.iqama[upcoming.key], "minute"), config.tz)}
+                    </span>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </footer>
       </div>
     </div>
   );
