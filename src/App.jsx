@@ -39,6 +39,22 @@ const LABELS = {
   isha: { tr: "Yatsı", ar: "Isha" },
 };
 
+// Kuratierte Auswahl bekannter, für die Anzeige geeigneter Koranverse (Surah:Ayah).
+// Ersetzt die vollständig zufällige Auswahl (1-6236) durch eine handverlesene Liste.
+// Nur kurze Verse (max. ~50 Wörter), damit sie gut lesbar auf dem Display Platz finden.
+const CURATED_AYAHS = [
+  "2:152", "2:153", "2:186", "13:28", "20:8", "20:14", "29:45", "31:17",
+  "33:41", "39:53", "51:56", "65:3", "87:14", "87:15", "94:5",
+  "103:1", "103:2", "103:3",
+];
+
+// Kuratierte Hadith-IDs von hadeethenc.com (Kategorie "Guter Charakter und Benehmen"),
+// verifiziert mit deutscher Übersetzung. Nur kurze Kernaussagen (max. ~50 Wörter).
+const CURATED_HADITHS = [
+  "66518", "66520", "66521", "66526", "66541", "3017", "3567", "3591",
+  "3701", "3716", "4191", "4302", "4555", "4709",
+];
+
 const toDateWithTime = (baseDate, hhmm, tz = DEFAULT_TZ) => {
   const dateStr = dayjs(baseDate).format("YYYY-MM-DD");
   return dayjs.tz(`${dateStr} ${hhmm}`, "YYYY-MM-DD HH:mm", tz);
@@ -1004,45 +1020,53 @@ export default function PrayerTVBeautiful() {
   // Dynamische Berechnung der Schriftgröße basierend auf der Zeichenanzahl
   const dynamicFontSize = useMemo(() => {
     const len = randomAyah.text.length;
-    if (len < 50) return "3.5rem";   // Sehr kurz
-    if (len < 100) return "2.8rem";  // Kurz
-    if (len < 150) return "2.4rem";  // Mittel
-    if (len < 200) return "2.1rem";  // Lang
-    if (len < 250) return "1.9rem";
-    if (len < 300) return "1.7rem";
-    if (len < 350) return "1.5rem";
-    return "1.4rem";                 // Sehr lang (bis 400 chars)
+    if (len < 50) return "2.6rem";   // Sehr kurz
+    if (len < 100) return "2.1rem";  // Kurz
+    if (len < 150) return "1.8rem";  // Mittel
+    if (len < 200) return "1.6rem";  // Lang
+    if (len < 250) return "1.45rem";
+    if (len < 300) return "1.3rem";
+    if (len < 350) return "1.15rem";
+    if (len < 400) return "1.05rem";
+    if (len < 550) return "0.95rem";
+    if (len < 700) return "0.85rem";
+    if (len < 900) return "0.75rem";
+    return "0.68rem";                // Sehr lang (Hadithe bis ~900 Zeichen)
   }, [randomAyah.text]);
 
   const fetchRandomAyah = async (force = false) => {
     const currentTime = Date.now();
     if (!force && currentTime - lastFetchRef.current < 600000) return;
 
-    let found = false;
-    let attempts = 0;
+    const useHadith = Math.random() < 0.4;
 
-    while (!found && attempts < 10) {
-      try {
-        attempts++;
-        const randomId = Math.floor(Math.random() * 6236) + 1;
-        const res = await fetch(`https://api.alquran.cloud/v1/ayah/${randomId}/de.bubenheim`);
+    try {
+      if (useHadith) {
+        const id = CURATED_HADITHS[Math.floor(Math.random() * CURATED_HADITHS.length)];
+        const res = await fetch(`https://hadeethenc.com/api/v1/hadeeths/one/?language=de&id=${id}`);
         const data = await res.json();
-        
-        if (data.status === "OK") {
-          const text = data.data.text;
-          if (text.length <= 400) {
-            setRandomAyah({
-              text: text,
-              ref: `${data.data.surah.englishName} (${data.data.surah.number}:${data.data.numberInSurah})`
-            });
-            lastFetchRef.current = currentTime;
-            found = true;
-          }
+        if (data.title) {
+          const text = data.title.replace(/^[„"‚'‘]+/, "").replace(/[""''"“”]+$/, "").trim();
+          const attribution = /[؀-ۿ]/.test(data.attribution || "") ? "Hadith" : data.attribution;
+          setRandomAyah({ text, ref: attribution || "Hadith" });
+          lastFetchRef.current = currentTime;
+          return;
         }
-      } catch (e) {
-        setRandomAyah({ text: "Gedenkt Meiner, so gedenke Ich eurer.", ref: "(2:152)" });
-        found = true;
       }
+
+      const ref = CURATED_AYAHS[Math.floor(Math.random() * CURATED_AYAHS.length)];
+      const res = await fetch(`https://api.alquran.cloud/v1/ayah/${ref}/de.bubenheim`);
+      const data = await res.json();
+      if (data.status === "OK") {
+        setRandomAyah({
+          text: data.data.text,
+          ref: `${data.data.surah.englishName} (${data.data.surah.number}:${data.data.numberInSurah})`
+        });
+        lastFetchRef.current = currentTime;
+      }
+    } catch (e) {
+      setRandomAyah({ text: "Gedenkt Meiner, so gedenke Ich eurer.", ref: "(2:152)" });
+      lastFetchRef.current = currentTime;
     }
   };
 
@@ -1210,7 +1234,7 @@ export default function PrayerTVBeautiful() {
       <div className="relative h-full w-full p-8 flex flex-col justify-between">
       <AmbientParticles />
       {/* HEADER */}
-      <header className="flex items-center justify-between h-[15%]">
+      <header className="flex items-center justify-between shrink-0">
         <div className="flex flex-col gap-2 max-w-[75%]">
           <div className="flex items-center gap-6">
             <motion.img
@@ -1267,7 +1291,7 @@ export default function PrayerTVBeautiful() {
       </header>
 
       {/* MAIN CONTENT AREA */}
-      <main className="grid grid-cols-12 gap-8 h-[55%] my-4">
+      <main className="grid grid-cols-12 gap-8 flex-[7] min-h-0 my-4">
         <Card className={`col-span-8 rounded-[55px] ${glass} border-t-[color:var(--accent)] border-t-8 flex flex-col`}>
           <CardContent className="relative p-12 h-full flex flex-col justify-between overflow-hidden">
             <div>
@@ -1279,22 +1303,22 @@ export default function PrayerTVBeautiful() {
                   <>{LABELS[upcoming.key].tr} <span className="text-[color:var(--ink-soft)] font-thin text-[inherit] mx-4">/</span> <span className="text-[color:var(--accent-light)] text-[inherit]">{LABELS[upcoming.key].ar}</span></>
                 ) : "—"}
               </h2>
-              <p className="max-w-[52%] text-5xl font-bold text-[color:var(--ink-soft)] mt-6 tracking-tight italic mt-12">
+              <p className="max-w-[52%] text-5xl font-bold text-[color:var(--ink-soft)] mt-3 tracking-tight italic">
                 Beginn um {fmt(upcoming.t, config.tz)} Uhr {upcoming.isTomorrow ? "(Morgen)" : ""}
               </p>
             </div>
 
-            <div className="absolute top-16 right-10 z-10 w-[42%] max-w-[380px] flex flex-col items-center justify-center gap-5 bg-[var(--surface-2)] px-7 py-6 rounded-[40px] border border-[color:var(--surface-border)] shadow-inner">
-              <FajrAnalogClock size={180} time={fajrClockTime} />
+            <div className="absolute top-6 right-10 z-10 w-[42%] max-w-[340px] flex flex-col items-center justify-center gap-3 bg-[var(--surface-2)] px-6 py-4 rounded-[40px] border border-[color:var(--surface-border)] shadow-inner">
+              <FajrAnalogClock size={140} time={fajrClockTime} />
               <div className="flex flex-col items-center text-center text-[color:var(--accent)] min-w-0">
-                <span className="text-3xl font-semibold uppercase tracking-[0.08em] text-[color:var(--ink)] mb-2">Sabah / Fajr Farz</span>
-                <span className="text-6xl font-medium leading-tight tabular-nums">{fmt(fajrClockTime, config.tz)}</span>
+                <span className="text-2xl font-semibold uppercase tracking-[0.08em] text-[color:var(--ink)] mb-1">Sabah / Fajr Farz</span>
+                <span className="text-5xl font-medium leading-tight tabular-nums">{fmt(fajrClockTime, config.tz)}</span>
               </div>
             </div>
 
             <div className="flex justify-between items-end gap-8">
               <div className="w-[52%]">
-                <p lang="de" className="text-[color:var(--ink-soft)] text-2xl font-medium mb-3 uppercase tracking-widest">Verbleibend</p>
+                <p lang="de" className="text-[color:var(--ink-soft)] text-2xl font-medium mt-4 mb-3 uppercase tracking-widest">Verbleibend</p>
                 <p className="text-[8rem] font-medium tabular-nums tracking-tighter leading-none">{remaining}</p>
                 <div className="h-7 w-full bg-[var(--surface-2)] rounded-full mt-8 overflow-hidden border border-[color:var(--surface-border)] p-1 shadow-inner">
                   <motion.div
@@ -1312,7 +1336,7 @@ export default function PrayerTVBeautiful() {
                 </div>
               </div>
 
-              <div className="w-[42%] flex items-center justify-center gap-7 bg-[var(--surface-2)] px-10 py-6 rounded-[35px] border border-[color:var(--surface-border)] shadow-xl">
+              <div className="w-[42%] flex items-center justify-center gap-5 bg-[var(--surface-2)] px-8 py-5 rounded-[35px] border border-[color:var(--surface-border)] shadow-xl">
                 <motion.div
                   className="shrink-0"
                   animate={{
@@ -1325,13 +1349,13 @@ export default function PrayerTVBeautiful() {
                   }}
                   transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
                 >
-                  <MoonPhase size={140} date={now.toDate()} variant={moonDesign} />
+                  <MoonPhase size={110} date={now.toDate()} variant={moonDesign} />
                 </motion.div>
                 <div className="flex flex-col text-[color:var(--accent)] min-w-0">
-                  <span className="text-xl uppercase tracking-[0.2em] text-[color:var(--ink-soft)] mb-2">
+                  <span className="text-lg uppercase tracking-[0.2em] text-[color:var(--ink-soft)] mb-1">
                     {getMoonPhaseName(getMoonPhase(now.toDate()))}
                   </span>
-                  <span className="text-4xl font-medium leading-tight">
+                  <span className="text-3xl font-medium leading-tight">
                     {hijriText}
                   </span>
                 </div>
@@ -1419,7 +1443,7 @@ export default function PrayerTVBeautiful() {
       </main>
 
       {/* FOOTER: PRAYER BOXES */}
-      <footer className="grid grid-cols-6 gap-6 h-[22%] mb-2">
+      <footer className="grid grid-cols-6 gap-6 flex-[3] min-h-0 mb-2">
         {PRAYER_ORDER.map((k) => {
           const active = currentPrayerKey === k;
 
@@ -2350,7 +2374,7 @@ function MihrabBackground({ bgStyle = "selcuklu" }) {
 // Mihrab-Layout: vertikale Gebetsliste + Moschee-Nische mit wanderndem Licht
 function MihrabLayout({ view }) {
   const {
-    config, now, hijriText, specialDay, randomAyah,
+    config, now, hijriText, specialDay, dynamicFontSize, randomAyah,
     times, upcoming, currentPrayerKey, remaining, progressPct, moonDesign, weather, mihrabBg,
   } = view;
 
@@ -2486,7 +2510,7 @@ function MihrabLayout({ view }) {
                 </motion.div>
               ) : upcoming.key && config.iqama[upcoming.key] === 0 ? (
                 <motion.div key="ayah" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col items-center" style={{ hyphens: "auto", wordBreak: "break-word" }}>
-                  <p lang="de" className="font-medium text-[color:var(--ink)] italic leading-snug text-[2.4rem] text-center">"{randomAyah.text}"</p>
+                  <p lang="de" className="font-medium text-[color:var(--ink)] italic leading-snug text-center" style={{ fontSize: `min(${dynamicFontSize}, 2rem)`, transition: "font-size 0.3s ease" }}>"{randomAyah.text}"</p>
                   <p className="mt-2 text-xl text-[color:var(--accent)] font-medium uppercase tracking-widest opacity-70">{randomAyah.ref}</p>
                 </motion.div>
               ) : (
@@ -2757,7 +2781,7 @@ function HorizonLayout({ view }) {
                 </motion.div>
               ) : upcoming.key && config.iqama[upcoming.key] === 0 ? (
                 <motion.div key="ayah" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col items-center" style={{ hyphens: "auto", wordBreak: "break-word" }}>
-                  <p lang="de" className="font-medium text-[color:var(--ink)] italic leading-snug text-center" style={{ fontSize: `min(${dynamicFontSize}, 2.2rem)`, transition: "font-size 0.3s ease" }}>
+                  <p lang="de" className="font-medium text-[color:var(--ink)] italic leading-snug text-center" style={{ fontSize: `min(${dynamicFontSize}, 1.8rem)`, transition: "font-size 0.3s ease" }}>
                     "{randomAyah.text}"
                   </p>
                   <p className="mt-2 text-lg text-[color:var(--accent)] font-medium uppercase tracking-widest opacity-70">{randomAyah.ref}</p>
