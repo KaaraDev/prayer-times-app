@@ -1367,20 +1367,20 @@ export default function PrayerTVBeautiful() {
         {/* RECHTS: AKTUELL / ZITAT */}
         <Card className={`col-span-4 rounded-[55px] ${glass} p-12 flex flex-col justify-between border-t-[color:var(--accent)] border-t-8 overflow-hidden h-full`}>
           {!specialDay.active && (
-            <div className="h-[25%] shrink-0">
-              <p className="text-[color:var(--accent)] text-3xl font-medium tracking-[0.3em] uppercase mb-2">Aktuell</p>
-              <h3 className="text-5xl font-medium leading-tight italic truncate">
+            <div className="shrink-0">
+              <p className="text-[color:var(--accent)] text-2xl font-medium tracking-[0.3em] uppercase mb-2">Aktuell</p>
+              <h3 className="text-4xl font-medium leading-tight italic truncate">
                 {currentPrayerKey ? (
-                  <>{upcoming.key === "sunrise" ? "Sabah" : LABELS[currentPrayerKey].tr} <span className="text-[color:var(--ink-soft)] text-3xl">/ {LABELS[currentPrayerKey].ar}</span></>
+                  <>{upcoming.key === "sunrise" ? "Sabah" : LABELS[currentPrayerKey].tr} <span className="text-[color:var(--ink-soft)] text-2xl">/ {LABELS[currentPrayerKey].ar}</span></>
                 ) : "—"}
               </h3>
-              <p className="text-3xl font-bold text-[color:var(--ink-soft)] mt-1 tabular-nums">
+              <p className="text-2xl font-bold text-[color:var(--ink-soft)] mt-1 tabular-nums">
                 Seit {fmt(times[currentPrayerKey], config.tz)}
               </p>
             </div>
           )}
 
-            <div className={`bg-[var(--surface-2)] rounded-[45px] p-6 text-center border border-[color:var(--surface-border)] shadow-inner flex flex-col justify-center items-center overflow-hidden ${specialDay.active ? "h-full" : "h-[72%]"}`}>            <AnimatePresence mode="wait">
+            <div className="bg-[var(--surface-2)] rounded-[45px] p-6 text-center border border-[color:var(--surface-border)] shadow-inner flex flex-col justify-center items-center overflow-hidden flex-1 min-h-0">            <AnimatePresence mode="wait">
               {specialDay.active ? (
                 <motion.div
                   key="special"
