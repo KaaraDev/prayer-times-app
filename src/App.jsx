@@ -403,13 +403,18 @@ function AmbientParticles() {
 
 function CreatorBadge() {
   return (
-    <div className={`${GLASS} rounded-xl p-2 flex items-center gap-2 shrink-0`}>
-      <img src={LINKEDIN_QR_SRC} alt="LinkedIn QR" width={42} height={42} className="block rounded-md shrink-0" />
-      <div className="flex flex-col pr-1.5">
-        <span className="text-[0.45rem] font-semibold uppercase tracking-[0.16em] text-[color:var(--accent)] leading-none mb-0.5">Made by</span>
-        <span className="text-[0.65rem] font-medium uppercase tracking-widest text-[color:var(--ink-soft)] leading-none">Metin Gürler</span>
-        <span className="text-[0.6rem] text-[color:var(--accent)] leading-none mt-0.5">LinkedIn ↗</span>
+    <div className="rounded-xl border border-[color:var(--surface-border)]/40 bg-[color:var(--surface)]/40 p-2 flex items-center gap-2 shrink-0 text-right backdrop-blur-md">
+      <div className="flex items-center gap-2">
+        <div className="flex flex-col items-end gap-1">
+          <span className="text-[0.45rem] font-semibold uppercase tracking-[0.16em] text-[color:var(--accent)] leading-none">Made by</span>
+          <span className="text-[0.5rem] text-[color:var(--accent)] leading-none">LinkedIn ↗</span>
+        </div>
+        <div className="flex flex-col items-start gap-1">
+          <span className="text-[0.55rem] font-medium uppercase tracking-widest text-[color:var(--ink-soft)] leading-none">Metin</span>
+          <span className="text-[0.55rem] font-medium uppercase tracking-widest text-[color:var(--ink-soft)] leading-none">Gürler</span>
+        </div>
       </div>
+      <img src={LINKEDIN_QR_SRC} alt="LinkedIn QR" width={42} height={42} className="block rounded-md shrink-0" />
     </div>
   );
 }
@@ -1240,14 +1245,14 @@ export default function PrayerTVBeautiful() {
             <motion.img
               src="\DITIB-Logo.svg.png"
               alt="Moschee Logo"
-              className="h-16 w-auto object-contain"
+              className="h-14 w-auto object-contain"
               initial={{ opacity: 0, y: -24, scale: 0.85 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               transition={{ duration: 0.7, ease: "easeOut" }}
             />
 
             <motion.h1
-              className="text-7xl font-medium tracking-tight uppercase leading-none truncate drop-shadow-lg"
+              className="text-[64px] font-medium tracking-tight uppercase leading-none truncate drop-shadow-lg"
               initial={{ opacity: 0, y: -24 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.7, ease: "easeOut", delay: 0.1 }}
@@ -1255,7 +1260,7 @@ export default function PrayerTVBeautiful() {
               {config.name}
             </motion.h1>
           </div>
-          <div className="flex gap-6 items-center">
+          <div className="-mt-8 flex items-center gap-6">
             <motion.span
               className="text-5xl text-[color:var(--accent)] font-bold mt-6"
               initial={{ opacity: 0, y: -16 }}
@@ -1278,7 +1283,7 @@ export default function PrayerTVBeautiful() {
         </div>
 
         <motion.div
-          className="flex flex-col items-end"
+          className="-mt-8 flex flex-col items-end"
           initial={{ opacity: 0, x: 40 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.7, ease: "easeOut", delay: 0.15 }}
@@ -1369,18 +1374,20 @@ export default function PrayerTVBeautiful() {
           {!specialDay.active && (
             <div className="shrink-0">
               <p className="text-[color:var(--accent)] text-2xl font-medium tracking-[0.3em] uppercase mb-2">Aktuell</p>
-              <h3 className="text-4xl font-medium leading-tight italic truncate">
-                {currentPrayerKey ? (
-                  <>{upcoming.key === "sunrise" ? "Sabah" : LABELS[currentPrayerKey].tr} <span className="text-[color:var(--ink-soft)] text-2xl">/ {LABELS[currentPrayerKey].ar}</span></>
-                ) : "—"}
-              </h3>
-              <p className="text-2xl font-bold text-[color:var(--ink-soft)] mt-1 tabular-nums">
-                Seit {fmt(times[currentPrayerKey], config.tz)}
-              </p>
+              <div className="flex items-baseline justify-between gap-4">
+                <h3 className="min-w-0 text-4xl font-medium leading-tight italic truncate">
+                  {currentPrayerKey ? (
+                    <>{upcoming.key === "sunrise" ? "Sabah" : LABELS[currentPrayerKey].tr} <span className="text-[color:var(--ink-soft)] text-2xl">/ {LABELS[currentPrayerKey].ar}</span></>
+                  ) : "—"}
+                </h3>
+                <p className="shrink-0 text-right text-[28px] font-bold text-[color:var(--accent)] tabular-nums">
+                  Seit {fmt(times[currentPrayerKey], config.tz)}
+                </p>
+              </div>
             </div>
           )}
 
-            <div className="bg-[var(--surface-2)] rounded-[45px] p-6 text-center border border-[color:var(--surface-border)] shadow-inner flex flex-col justify-center items-center overflow-hidden flex-1 min-h-0">            <AnimatePresence mode="wait">
+            <div className="mt-6 bg-[var(--surface-2)] rounded-[45px] p-6 text-center border border-[color:var(--surface-border)] shadow-inner flex flex-col justify-center items-center overflow-hidden flex-1 min-h-0">            <AnimatePresence mode="wait">
               {specialDay.active ? (
                 <motion.div
                   key="special"
@@ -1485,7 +1492,7 @@ export default function PrayerTVBeautiful() {
       </div>
       )}
 
-      {showCreatorBadge && <div className="absolute bottom-3 right-3 z-50"><CreatorBadge /></div>}
+      {showCreatorBadge && <div className="absolute bottom-1 right-1 z-50"><CreatorBadge /></div>}
 
       <div className="absolute bottom-4 right-4 z-50 opacity-0 hover:opacity-100 transition-opacity">
         <Sheet>
