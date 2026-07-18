@@ -601,21 +601,105 @@ const LAYOUTS = [
 const ARCH_PATH = "M 8 128 L 8 52 Q 10 12 50 5 Q 90 12 92 52 L 92 128 Z";
 
 // Religiöse Tage (Bayrame mit Gebetszeiten + Kandil-/Sondertage als Ankündigung).
-// WICHTIG: Daten jährlich mit dem offiziellen DITIB/Diyanet-Kalender abgleichen!
+// Diese Werte sind nur der Startwert, bevor der Diyanet-Kalender geladen ist -
+// siehe deriveReligiousDays() weiter unten für die automatische Berechnung.
 // type "eid" zeigt Sabah-/Bayram-Gebetszeit, type "day" zeigt nur einen Countdown.
 // window = ab wie vielen Tagen vorher angekündigt wird.
 const DEFAULT_RELIGIOUS_DAYS = [
-  { id: "regaib",   type: "day", date: "2026-01-15", title: "Regaib Kandili", window: 6 },
-  { id: "mirac",    type: "day", date: "2026-02-15", title: "Miraç Kandili", window: 6 },
-  { id: "berat",    type: "day", date: "2026-03-03", title: "Berat Kandili", window: 6 },
-  { id: "ramazan",  type: "day", date: "2026-02-18", title: "Ramazan‑ı Şerif\nRamadan‑Beginn", window: 8 },
-  { id: "kadir",    type: "day", date: "2026-03-16", title: "Kadir Gecesi\nLailat al‑Qadr", window: 6 },
+  { id: "regaib",   type: "day", date: "2025-12-26", title: "Regaib Kandili", window: 6 },
+  { id: "mirac",    type: "day", date: "2026-01-16", title: "Miraç Kandili", window: 6 },
+  { id: "berat",    type: "day", date: "2026-02-03", title: "Berat Kandili", window: 6 },
+  { id: "ramazan",  type: "day", date: "2026-02-19", title: "Ramazan‑ı Şerif\nRamadan‑Beginn", window: 8 },
+  { id: "kadir",    type: "day", date: "2026-03-17", title: "Kadir Gecesi\nLailat al‑Qadr", window: 6 },
   { id: "eid-fitr", type: "eid", date: "2026-03-20", title: "Ramazan Bayramı\nEid al‑Fitr", sabahTime: "05:35", prayerTime: "07:00", window: 8 },
   { id: "eid-adha", type: "eid", date: "2026-05-27", title: "Kurban Bayramı\nEid al‑Adha", sabahTime: "04:30", prayerTime: "06:30", window: 8 },
-  { id: "hicri",    type: "day", date: "2026-06-26", title: "Hicri Yılbaşı\nIslam. Neujahr 1448", window: 6 },
-  { id: "asure",    type: "day", date: "2026-07-05", title: "Aşure Günü", window: 6 },
+  { id: "hicri",    type: "day", date: "2026-06-16", title: "Hicri Yılbaşı\nIslam. Neujahr 1448", window: 6 },
+  { id: "asure",    type: "day", date: "2026-06-25", title: "Aşure Günü", window: 6 },
   { id: "mevlid",   type: "day", date: "2026-08-25", title: "Mevlid Kandili", window: 6 },
 ];
+
+// Feste Hijri-Tag/Monat-Paare für die automatische Berechnung. Regaib hat
+// keinen festen Tag (erster Freitag im Recep) und wird separat berechnet.
+const RELIGIOUS_DAY_RULES = [
+  { id: "mirac",    type: "day", title: "Miraç Kandili", window: 6, hDay: 27, hMonth: "Recep" },
+  { id: "berat",    type: "day", title: "Berat Kandili", window: 6, hDay: 15, hMonth: "Şaban" },
+  { id: "ramazan",  type: "day", title: "Ramazan‑ı Şerif\nRamadan‑Beginn", window: 8, hDay: 1, hMonth: "Ramazan" },
+  { id: "kadir",    type: "day", title: "Kadir Gecesi\nLailat al‑Qadr", window: 6, hDay: 27, hMonth: "Ramazan" },
+  { id: "eid-fitr", type: "eid", title: "Ramazan Bayramı\nEid al‑Fitr", window: 8, hDay: 1, hMonth: "Şevval" },
+  { id: "eid-adha", type: "eid", title: "Kurban Bayramı\nEid al‑Adha", window: 8, hDay: 10, hMonth: "Zilhicce" },
+  { id: "hicri",    type: "day", title: "Hicri Yılbaşı\nIslam. Neujahr", window: 6, hDay: 1, hMonth: "Muharrem" },
+  { id: "asure",    type: "day", title: "Aşure Günü", window: 6, hDay: 10, hMonth: "Muharrem" },
+  { id: "mevlid",   type: "day", title: "Mevlid Kandili", window: 6, hDay: 12, hMonth: "Rebiulevvel" },
+];
+
+const HIJRI_DATE_RE = /^(\d+)\s+(.+?)\s+(\d+)$/;
+
+// Baut aus dem geladenen Diyanet-Kalender (jeder Tag trägt sein Hijri-Datum,
+// z.B. "12 Recep 1447") eine sortierte Liste { date, hDay, hMonth, hYear }.
+function buildHijriIndex(calendar) {
+  const rows = [];
+  for (const [date, entry] of Object.entries(calendar || {})) {
+    const m = entry?.hijri && HIJRI_DATE_RE.exec(entry.hijri.trim());
+    if (!m) continue;
+    rows.push({ date, hDay: parseInt(m[1], 10), hMonth: m[2], hYear: parseInt(m[3], 10) });
+  }
+  rows.sort((a, b) => a.date.localeCompare(b.date));
+  return rows;
+}
+
+// Von mehreren Vorkommen (der Kalender kann mehrere Jahre enthalten) das
+// nächste bevorstehende wählen, sonst das letzte vergangene als Fallback.
+function pickOccurrence(rows, todayIso) {
+  if (!rows.length) return null;
+  return rows.find((r) => r.date >= todayIso) || rows[rows.length - 1];
+}
+
+// Regaib Kandili: der erste Freitag im Monat Recep (kein fester Hijri-Tag).
+function findRegaibDate(rows, todayIso) {
+  const recepStarts = rows.filter((r) => r.hDay === 1 && r.hMonth === "Recep");
+  const fridays = [];
+  for (const start of recepStarts) {
+    const startIdx = rows.findIndex((r) => r.date === start.date);
+    if (startIdx === -1) continue;
+    for (let i = startIdx; i < rows.length && i < startIdx + 7; i++) {
+      if (dayjs(rows[i].date).day() === 5) { fridays.push(rows[i]); break; }
+    }
+  }
+  return pickOccurrence(fridays, todayIso)?.date ?? null;
+}
+
+// Sabah/Iqama-Zeit am Bayram: wie überall in der App 45 Min. vor Sonnenaufgang.
+// Bayram-Gebetszeit: sinnvoller Startwert 30 Min. nach Sonnenaufgang - beides
+// über die Einstellungen anpassbar, falls die Moschee eine andere Zeit ansetzt.
+function eidTimesFromSunrise(sunrise) {
+  if (!sunrise) return { sabahTime: null, prayerTime: null };
+  const base = dayjs(`2000-01-01T${sunrise}`);
+  return {
+    sabahTime: base.subtract(45, "minute").format("HH:mm"),
+    prayerTime: base.add(30, "minute").format("HH:mm"),
+  };
+}
+
+// Berechnet alle religiösen Tage frisch aus dem Diyanet-Kalender. Gibt null
+// zurück, solange der Kalender noch nicht geladen ist (Aufrufer behält dann
+// die bisherige/Default-Liste bei).
+function deriveReligiousDays(calendar, todayIso) {
+  const rows = buildHijriIndex(calendar);
+  if (!rows.length) return null;
+
+  const regaib = { id: "regaib", type: "day", title: "Regaib Kandili", window: 6, date: findRegaibDate(rows, todayIso) };
+
+  const rest = RELIGIOUS_DAY_RULES.map((rule) => {
+    const picked = pickOccurrence(rows.filter((r) => r.hDay === rule.hDay && r.hMonth === rule.hMonth), todayIso);
+    const date = picked?.date ?? null;
+    const title = rule.id === "hicri" && picked ? `${rule.title} ${picked.hYear}` : rule.title;
+    const base = { id: rule.id, type: rule.type, title, window: rule.window, date };
+    if (rule.type === "eid") return { ...base, ...eidTimesFromSunrise(date ? calendar[date]?.sunrise : null) };
+    return base;
+  });
+
+  return [regaib, ...rest];
+}
 
 // Gemeinsame Darstellung eines religiösen Tages (Bayram mit Zeiten oder Ankündigung)
 function SpecialDayPanel({ specialDay, config, variant = "panel" }) {
@@ -936,14 +1020,23 @@ export default function PrayerTVBeautiful() {
     } catch { /* ungültige Daten ignorieren */ }
     return DEFAULT_RELIGIOUS_DAYS;
   });
+  // Solange aktiv, werden die religiösen Tage bei jedem Kalender-Update aus
+  // dem Diyanet-Hijri-Kalender neu berechnet. Eine manuelle Änderung (updateDay)
+  // schaltet automatisch ab, damit sie nicht wieder überschrieben wird.
+  const [religiousDaysAuto, setReligiousDaysAuto] = useState(() => {
+    const saved = typeof window !== "undefined" ? localStorage.getItem("prayer_religious_days_auto") : null;
+    return saved === null ? true : saved === "true";
+  });
   const [testDayId, setTestDayId] = useState(() => {
     return (typeof window !== "undefined" ? localStorage.getItem("prayer_test_day") : null) || null;
   });
   const lastFetchRef = useRef(0);
   const [weather, setWeather] = useState(null);
 
-  const updateDay = (id, patch) =>
+  const updateDay = (id, patch) => {
+    setReligiousDaysAuto(false);
     setReligiousDays((prev) => prev.map((d) => (d.id === id ? { ...d, ...patch } : d)));
+  };
 
   useEffect(() => {
     if (typeof window !== "undefined") localStorage.setItem("prayer_moon_design", moonDesign);
@@ -972,6 +1065,16 @@ export default function PrayerTVBeautiful() {
   useEffect(() => {
     if (typeof window !== "undefined") localStorage.setItem("prayer_religious_days", JSON.stringify(religiousDays));
   }, [religiousDays]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") localStorage.setItem("prayer_religious_days_auto", String(religiousDaysAuto));
+  }, [religiousDaysAuto]);
+
+  useEffect(() => {
+    if (!religiousDaysAuto || !calendar) return;
+    const derived = deriveReligiousDays(calendar, dayjs().format("YYYY-MM-DD"));
+    if (derived) setReligiousDays(derived);
+  }, [calendar, religiousDaysAuto]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -1614,6 +1717,14 @@ export default function PrayerTVBeautiful() {
               <p className="mt-1 mb-3 text-xs text-slate-400">
                 Datum &amp; Zeiten anpassen. „Test“ zeigt den Tag sofort aktiv an (nur zum Prüfen).
               </p>
+
+              <div className="mb-3 flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-white/5 px-3 py-2">
+                <div>
+                  <p className="text-xs font-medium text-white">Automatisch berechnen</p>
+                  <p className="text-xs text-slate-400">Aus dem Diyanet-Hijri-Kalender - eigene Änderungen unten schalten das ab.</p>
+                </div>
+                <Switch checked={religiousDaysAuto} onCheckedChange={setReligiousDaysAuto} />
+              </div>
 
               {testDayId && (
                 <button
