@@ -1,0 +1,99 @@
+<!--
+  Trimmed synthetic fixture, derived from a live fetch of
+  https://namazvakitleri.diyanet.gov.tr/de-DE/10103/geislingen-an-der-steige-gebetszeiten
+  on 2026-07-18. Kept small on purpose: just enough real markup to prove the
+  tag-stripping regex survives (a) the weekly table's extra "Gebet"/"Zeit"
+  columns before the date, and (b) a handful of rows from the yearly table,
+  including the first and last day of the year.
+-->
+<html>
+<body>
+<section class="tab-wrapper">
+  <div id="tab-0" class="w3-container w3-border nv-tab-content">
+    <div class="table-responsive">
+      <table class="table vakit-table" itemscope itemtype="http://schema.org/Table">
+        <thead>
+          <tr>
+            <th scope="col" itemprop="name">Gebet</th>
+            <th scope="col" itemprop="name">Zeit</th>
+            <th scope="col">Gregorianischen Kalender</th>
+            <th scope="col">Hidjri Datum</th>
+            <th scope="col">Morgengebet (Fastenbeginn )</th>
+            <th scope="col">Sonnenaufgang </th>
+            <th scope="col">Mittagsgebet</th>
+            <th scope="col">Nachmittagsgebet</th>
+            <th scope="col">Abendgebet</th>
+            <th scope="col">Nachtgebet</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr itemprop="mainEntity" itemscope itemtype="http://schema.org/TableRow">
+            <td itemprop="name">Morgengebet (Fastenbeginn )</td>
+            <td itemprop="description">03:52</td>
+            <td>18.07.2026</td>
+            <td>4 Safer 1448</td>
+            <td>03:52</td>
+            <td>05:30</td>
+            <td>13:32</td>
+            <td>17:43</td>
+            <td>21:24</td>
+            <td>22:44</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="tab-2" class="w3-container w3-border nv-tab-content" style="display:none">
+    <div class="table-responsive">
+      <table class="table vakit-table" id="yourTable" aria-describedby="table-caption-yearly">
+        <thead>
+          <tr>
+            <th scope="col">Gregorianischen Kalender</th>
+            <th scope="col">Hidjri Datum</th>
+            <th scope="col">Morgengebet (Fastenbeginn )</th>
+            <th scope="col">Sonnenaufgang </th>
+            <th scope="col">Mittagsgebet</th>
+            <th scope="col">Nachmittagsgebet</th>
+            <th scope="col">Abendgebet</th>
+            <th scope="col">Nachtgebet</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>01.01.2026</td>
+            <td>12 Recep 1447</td>
+            <td>06:18</td>
+            <td>08:06</td>
+            <td>12:29</td>
+            <td>14:22</td>
+            <td>16:42</td>
+            <td>18:17</td>
+          </tr>
+          <tr>
+            <td>02.01.2026</td>
+            <td>13 Recep 1447</td>
+            <td>06:18</td>
+            <td>08:06</td>
+            <td>12:30</td>
+            <td>14:22</td>
+            <td>16:43</td>
+            <td>18:18</td>
+          </tr>
+          <tr>
+            <td>31.12.2026</td>
+            <td>22 Recep 1448</td>
+            <td>06:18</td>
+            <td>08:06</td>
+            <td>12:28</td>
+            <td>14:21</td>
+            <td>16:41</td>
+            <td>18:16</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+</body>
+</html>

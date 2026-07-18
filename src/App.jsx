@@ -1076,7 +1076,7 @@ export default function PrayerTVBeautiful() {
   };
 
   useEffect(() => {
-    fetch("/diyanet-geislingen-2026.json").then(res => res.json()).then(setCalendar).catch(console.error);
+    fetch("/diyanet-geislingen.json").then(res => res.json()).then(setCalendar).catch(console.error);
     fetchRandomAyah(true);
   }, []);
 
