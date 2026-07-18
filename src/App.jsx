@@ -1450,7 +1450,7 @@ export default function PrayerTVBeautiful() {
       </main>
 
       {/* FOOTER: PRAYER BOXES */}
-      <footer className="grid grid-cols-6 gap-6 flex-[3] min-h-0 mb-2">
+      <footer className="grid grid-cols-6 gap-6 flex-[3] min-h-0 mt-4 mb-2">
         {PRAYER_ORDER.map((k) => {
           const active = currentPrayerKey === k;
 
