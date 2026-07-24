@@ -17,7 +17,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Switch } from "@/components/ui/switch";
-import { Settings, Maximize2, MapPin, Clock, Quote, Sun, Cloud, CloudRain, CloudSnow, CloudLightning } from "lucide-react";
+import { Settings, Maximize2, MapPin, Clock, Quote, Sun, Cloud, CloudRain, CloudSnow, CloudLightning, Image as ImageIcon, Trash2, Upload } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 dayjs.extend(utc);
@@ -163,6 +163,30 @@ const UI_THEMES = [
     },
   },
   {
+    id: "sabah",
+    label: "Sabah",
+    swatch: ["#d97706", "#0d9488", "#fff8ec"],
+    vars: {
+      "--bg":
+        "radial-gradient(120% 85% at 50% -12%, rgba(251,191,36,0.28) 0%, transparent 46%), radial-gradient(95% 60% at 88% 112%, rgba(45,212,191,0.20) 0%, transparent 52%), linear-gradient(160deg, #fffaf0 0%, #fdf1de 46%, #f8e4bf 100%)",
+      "--ink": "#2a2013",
+      "--ink-soft": "#8a7452",
+      "--surface": "rgba(255,255,255,0.70)",
+      "--surface-border": "rgba(217,119,6,0.20)",
+      "--surface-2": "rgba(217,119,6,0.08)",
+      "--accent": "#d97706",
+      "--accent-strong": "#b45309",
+      "--accent-light": "#92400e",
+      "--accent-glow": "rgba(217,119,6,0.38)",
+      "--accent2": "#0d9488",
+      "--accent2-soft": "rgba(13,148,136,0.12)",
+      "--next": "#0d9488",
+      "--next-border": "#5eead4",
+      "--next-glow": "rgba(13,148,136,0.45)",
+      "--next-ink": "#ffffff",
+    },
+  },
+  {
     id: "turquoise",
     label: "Türkis / Weiß",
     swatch: ["#0d9488", "#ffffff", "#b8ece4"],
@@ -183,6 +207,30 @@ const UI_THEMES = [
       "--next": "#f43f5e",
       "--next-border": "#fda4af",
       "--next-glow": "rgba(244,63,94,0.40)",
+    },
+  },
+  {
+    id: "pearlTurquoise",
+    label: "Perle / Türkis",
+    swatch: ["#ffffff", "#14b8a6", "#ef4444"],
+    vars: {
+      "--bg":
+        "radial-gradient(120% 85% at 50% -12%, rgba(20,184,166,0.16) 0%, transparent 48%), radial-gradient(90% 60% at 88% 112%, rgba(239,68,68,0.08) 0%, transparent 52%), linear-gradient(160deg, #ffffff 0%, #f4fdfb 50%, #e6f9f5 100%)",
+      "--ink": "#0e2e2c",
+      "--ink-soft": "#5f8481",
+      "--surface": "rgba(255,255,255,0.78)",
+      "--surface-border": "rgba(20,184,166,0.20)",
+      "--surface-2": "rgba(20,184,166,0.07)",
+      "--accent": "#14b8a6",
+      "--accent-strong": "#0d9488",
+      "--accent-light": "#0f766e",
+      "--accent-glow": "rgba(20,184,166,0.40)",
+      "--accent2": "#0e7490",
+      "--accent2-soft": "rgba(14,116,144,0.10)",
+      "--next": "#ef4444",
+      "--next-border": "#fca5a5",
+      "--next-glow": "rgba(239,68,68,0.42)",
+      "--next-ink": "#ffffff",
     },
   },
   {
@@ -985,7 +1033,7 @@ export default function PrayerTVBeautiful() {
   });
   const [uiTheme, setUiTheme] = useState(() => {
     const saved = typeof window !== "undefined" ? localStorage.getItem("prayer_ui_theme") : null;
-    return saved && UI_THEMES.some((t) => t.id === saved) ? saved : "midnight";
+    return saved && UI_THEMES.some((t) => t.id === saved) ? saved : "sabah";
   });
   const [autoTheme, setAutoTheme] = useState(() => {
     try {
@@ -1012,6 +1060,20 @@ export default function PrayerTVBeautiful() {
     const saved = typeof window !== "undefined" ? localStorage.getItem("prayer_creator_badge") : null;
     return saved === null ? true : saved === "true";
   });
+  const [sidePanelMode, setSidePanelMode] = useState(() => {
+    const saved = typeof window !== "undefined" ? localStorage.getItem("prayer_side_panel_mode") : null;
+    return saved === "images" ? "images" : "content";
+  });
+  const [sidePanelImages, setSidePanelImages] = useState(() => {
+    try {
+      const saved = typeof window !== "undefined" ? localStorage.getItem("prayer_side_panel_images") : null;
+      const parsed = saved ? JSON.parse(saved) : null;
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  });
+  const [sidePanelImageIndex, setSidePanelImageIndex] = useState(0);
   const [religiousDays, setReligiousDays] = useState(() => {
     try {
       const saved = typeof window !== "undefined" ? localStorage.getItem("prayer_religious_days") : null;
@@ -1061,6 +1123,47 @@ export default function PrayerTVBeautiful() {
   useEffect(() => {
     if (typeof window !== "undefined") localStorage.setItem("prayer_creator_badge", String(showCreatorBadge));
   }, [showCreatorBadge]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") localStorage.setItem("prayer_side_panel_mode", sidePanelMode);
+  }, [sidePanelMode]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem("prayer_side_panel_images", JSON.stringify(sidePanelImages));
+      } catch {
+        // Speicher voll (zu viele/große Bilder) - still fail, Anzeige bleibt im Speicher
+      }
+    }
+  }, [sidePanelImages]);
+
+  useEffect(() => {
+    setSidePanelImageIndex(0);
+  }, [sidePanelImages.length]);
+
+  useEffect(() => {
+    if (sidePanelMode !== "images" || sidePanelImages.length < 2) return;
+    const id = setInterval(() => {
+      setSidePanelImageIndex((i) => (i + 1) % sidePanelImages.length);
+    }, 60000);
+    return () => clearInterval(id);
+  }, [sidePanelMode, sidePanelImages.length]);
+
+  const addSidePanelImages = (fileList) => {
+    const files = Array.from(fileList || []).filter((f) => f.type.startsWith("image/"));
+    files.forEach((file) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        setSidePanelImages((prev) => [...prev, { id: `${Date.now()}-${Math.random()}`, src: reader.result }]);
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const removeSidePanelImage = (id) => {
+    setSidePanelImages((prev) => prev.filter((img) => img.id !== id));
+  };
 
   useEffect(() => {
     if (typeof window !== "undefined") localStorage.setItem("prayer_religious_days", JSON.stringify(religiousDays));
@@ -1406,7 +1509,7 @@ export default function PrayerTVBeautiful() {
               <p className="text-[color:var(--accent)] text-2xl font-medium tracking-[0.3em] uppercase mb-6 flex items-center gap-4">
                 <span className="w-14 h-1.5 bg-[var(--accent)]" /> Nächstes Gebet
               </p>
-              <h2 className="text-[7.5rem] font-medium leading-none tracking-tighter whitespace-nowrap">
+              <h2 className="text-[6rem] font-medium leading-none tracking-tighter whitespace-nowrap">
                 {upcoming.key ? (
                   <>{LABELS[upcoming.key].tr} <span className="text-[color:var(--ink-soft)] font-thin text-[inherit] mx-4">/</span> <span className="text-[color:var(--accent-light)] text-[inherit]">{LABELS[upcoming.key].ar}</span></>
                 ) : "—"}
@@ -1472,8 +1575,25 @@ export default function PrayerTVBeautiful() {
           </CardContent>
         </Card>
 
-        {/* RECHTS: AKTUELL / ZITAT */}
-        <Card className={`col-span-4 rounded-[55px] ${glass} p-12 flex flex-col justify-between border-t-[color:var(--accent)] border-t-8 overflow-hidden h-full`}>
+        {/* RECHTS: AKTUELL / ZITAT / BILDER */}
+        <Card className={`col-span-4 rounded-[55px] ${glass} ${sidePanelMode === "images" ? "p-4" : "p-12"} flex flex-col justify-between border-t-[color:var(--accent)] border-t-8 overflow-hidden h-full`}>
+          {sidePanelMode === "images" && sidePanelImages.length > 0 ? (
+            <div className="relative w-full h-full rounded-[40px] overflow-hidden bg-[var(--surface-2)]">
+              <AnimatePresence mode="wait">
+                <motion.img
+                  key={sidePanelImages[sidePanelImageIndex % sidePanelImages.length]?.id}
+                  src={sidePanelImages[sidePanelImageIndex % sidePanelImages.length]?.src}
+                  alt=""
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.6, ease: "easeOut" }}
+                  className="absolute inset-0 w-full h-full object-contain"
+                />
+              </AnimatePresence>
+            </div>
+          ) : (
+          <>
           {!specialDay.active && (
             <div className="shrink-0">
               <p className="text-[color:var(--accent)] text-2xl font-medium tracking-[0.3em] uppercase mb-2">Aktuell</p>
@@ -1549,6 +1669,8 @@ export default function PrayerTVBeautiful() {
               )}
             </AnimatePresence>
           </div>
+          </>
+          )}
         </Card>
       </main>
 
@@ -1609,6 +1731,62 @@ export default function PrayerTVBeautiful() {
             </div>
 
             <div className="mt-4"><Label>Moschee Name</Label><Input value={config.name} onChange={(e)=>setConfig({...config, name:e.target.value})} className="bg-white/5 mt-2"/></div>
+
+            <div className="mt-8">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-sm font-medium text-slate-100">Bilder statt "Aktuell"-Box anzeigen</div>
+                  <div className="mt-1 text-xs text-slate-400">Zeigt eigene Bilder in der rechten Box, passend eingepasst.</div>
+                </div>
+                <Switch
+                  checked={sidePanelMode === "images"}
+                  onCheckedChange={(on) => setSidePanelMode(on ? "images" : "content")}
+                />
+              </div>
+
+              {sidePanelMode === "images" && (
+                <div className="mt-4">
+                  <label
+                    htmlFor="side-panel-image-upload"
+                    className="flex items-center justify-center gap-2 rounded-2xl border border-dashed border-white/20 bg-white/5 p-4 text-sm text-slate-300 hover:bg-white/10 cursor-pointer transition"
+                  >
+                    <Upload className="h-4 w-4" /> Bilder hochladen
+                  </label>
+                  <input
+                    id="side-panel-image-upload"
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="hidden"
+                    onChange={(e) => {
+                      addSidePanelImages(e.target.files);
+                      e.target.value = "";
+                    }}
+                  />
+
+                  {sidePanelImages.length > 0 ? (
+                    <div className="mt-3 grid grid-cols-3 gap-2">
+                      {sidePanelImages.map((img) => (
+                        <div key={img.id} className="relative group rounded-xl overflow-hidden border border-white/10 aspect-square">
+                          <img src={img.src} alt="" className="w-full h-full object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => removeSidePanelImage(img.id)}
+                            className="absolute inset-0 flex items-center justify-center bg-black/60 opacity-0 group-hover:opacity-100 transition"
+                          >
+                            <Trash2 className="h-5 w-5 text-red-300" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="mt-3 flex items-center gap-2 text-xs text-slate-400">
+                      <ImageIcon className="h-4 w-4" /> Noch keine Bilder hochgeladen.
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
 
             <div className="mt-8">
               <Label>Layout</Label>
@@ -2866,10 +3044,10 @@ function HorizonLayout({ view }) {
           {/* Countdown im Inneren des Bogens */}
           <div className="absolute inset-x-0 bottom-[9%] flex flex-col items-center text-center pointer-events-none">
             <p className="text-[color:var(--accent)] text-2xl font-medium tracking-[0.3em] uppercase mb-2">Nächstes Gebet</p>
-            <h2 className="text-7xl font-medium leading-none tracking-tight">
+            <h2 className="text-6xl font-medium leading-none tracking-tight">
               {upcoming.key ? LABELS[upcoming.key].tr : "—"}
               {upcoming.key && (
-                <span className="text-[color:var(--accent-light)] text-4xl uppercase tracking-widest ml-5">{LABELS[upcoming.key].ar}</span>
+                <span className="text-[color:var(--accent-light)] text-3xl uppercase tracking-widest ml-5">{LABELS[upcoming.key].ar}</span>
               )}
             </h2>
             <p className="text-[7.5rem] font-medium tabular-nums tracking-tighter leading-none mt-4">{remaining}</p>
